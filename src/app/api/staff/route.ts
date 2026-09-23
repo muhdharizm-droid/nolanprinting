@@ -73,12 +73,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Required fields missing." }, { status: 400 });
     }
 
-    const existing = await db.user.findUnique({ where: { username: username.trim() } });
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
+
+    if (cleanPassword.length < 4) {
+      return NextResponse.json({ success: false, message: "Password must be at least 4 characters long." }, { status: 400 });
+    }
+
+    const existing = await db.user.findFirst({
+      where: {
+        username: { equals: cleanUsername, mode: "insensitive" },
+      },
+    });
     if (existing) {
       return NextResponse.json({ success: false, message: "Username already taken." }, { status: 400 });
     }
 
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await hashPassword(cleanPassword);
     const newStaff = await db.user.create({
       data: {
         username: username.trim(),
@@ -140,8 +151,12 @@ export async function PUT(req: NextRequest) {
       if (gender !== undefined) updateData.gender = gender;
       if (race !== undefined) updateData.race = race;
       if (address !== undefined) updateData.address = address?.trim() || "";
-      if (password && password.trim().length >= 6) {
-        updateData.password = await hashPassword(password.trim());
+      if (password !== undefined && password !== null && typeof password === "string" && password.trim().length > 0) {
+        const cleanPass = password.trim();
+        if (cleanPass.length < 4) {
+          return NextResponse.json({ success: false, message: "Password must be at least 4 characters long." }, { status: 400 });
+        }
+        updateData.password = await hashPassword(cleanPass);
       }
 
       const updated = await db.user.update({
@@ -167,7 +182,7 @@ export async function PUT(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({ success: true, staff: updated });
+      return NextResponse.json({ success: true, staff: updated, message: "Profile updated successfully." });
     }
 
     // Admin (owner) can update any staff user
@@ -192,8 +207,15 @@ export async function PUT(req: NextRequest) {
     if (gender !== undefined) updateData.gender = gender;
     if (race !== undefined) updateData.race = race;
     if (address !== undefined) updateData.address = address?.trim() || "";
-    if (password && password.trim().length >= 6) {
-      updateData.password = await hashPassword(password.trim());
+
+    let passwordChanged = false;
+    if (password !== undefined && password !== null && typeof password === "string" && password.trim().length > 0) {
+      const cleanPass = password.trim();
+      if (cleanPass.length < 4) {
+        return NextResponse.json({ success: false, message: "New password must be at least 4 characters long." }, { status: 400 });
+      }
+      updateData.password = await hashPassword(cleanPass);
+      passwordChanged = true;
     }
 
     const updated = await db.user.update({
@@ -214,12 +236,21 @@ export async function PUT(req: NextRequest) {
     await db.activityLog.create({
       data: {
         userId: user.id,
-        action: "Staff Updated",
-        details: `Admin updated staff member '${updated.fullName}' (${updated.role}).`,
+        action: passwordChanged ? "Staff Password Reset" : "Staff Updated",
+        details: passwordChanged
+          ? `Admin reset password and updated profile for '${updated.fullName}' (@${updated.username}).`
+          : `Admin updated staff member '${updated.fullName}' (${updated.role}).`,
       },
     });
 
-    return NextResponse.json({ success: true, staff: updated });
+    return NextResponse.json({
+      success: true,
+      staff: updated,
+      passwordReset: passwordChanged,
+      message: passwordChanged
+        ? `Password for '${updated.fullName}' (@${updated.username}) has been successfully reset.`
+        : `Staff details for '${updated.fullName}' updated successfully.`,
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message || "Failed to update staff" }, { status: 500 });
   }

@@ -17,6 +17,7 @@ import {
   UserCheck,
   User,
   Eye,
+  EyeOff,
   Search,
   ShoppingCart,
   Lock,
@@ -112,6 +113,12 @@ export default function StaffPage() {
   const [selfError, setSelfError] = useState("");
   const [selfSaving, setSelfSaving] = useState(false);
 
+  // Global Notification & Password Toggles
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showSelfPassword, setShowSelfPassword] = useState(false);
+
   const fetchStaffData = async () => {
     setLoading(true);
     try {
@@ -173,6 +180,7 @@ export default function StaffPage() {
   const openAddModal = () => {
     setAddUsername("");
     setAddPassword("");
+    setShowAddPassword(false);
     setAddFullName("");
     setAddRole("cashier");
     setAddPhone("");
@@ -190,18 +198,24 @@ export default function StaffPage() {
     setAddLoading(true);
 
     try {
+      if (addPassword.trim().length < 4) {
+        setAddErrorMsg("Password must be at least 4 characters long.");
+        setAddLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: addUsername,
-          password: addPassword,
-          fullName: addFullName,
+          username: addUsername.trim(),
+          password: addPassword.trim(),
+          fullName: addFullName.trim(),
           role: addRole,
-          phoneNumber: addPhone,
+          phoneNumber: addPhone.trim(),
           gender: addGender,
           race: addRace,
-          address: addAddress,
+          address: addAddress.trim(),
         }),
       });
       const data = await res.json();
@@ -210,6 +224,8 @@ export default function StaffPage() {
       }
 
       setAddModalOpen(false);
+      setSuccessToast(`Staff account "${addFullName}" created successfully!`);
+      setTimeout(() => setSuccessToast(null), 5000);
       fetchStaffData();
     } catch (err: any) {
       setAddErrorMsg(err.message);
@@ -229,6 +245,7 @@ export default function StaffPage() {
     setEditRace(st.race || "Malay");
     setEditAddress(st.address || "");
     setEditPassword("");
+    setShowEditPassword(false);
     setEditErrorMsg("");
     setEditModalOpen(true);
   };
@@ -252,6 +269,11 @@ export default function StaffPage() {
         address: editAddress,
       };
       if (editPassword.trim()) {
+        if (editPassword.trim().length < 4) {
+          setEditErrorMsg("New password must be at least 4 characters long.");
+          setEditLoading(false);
+          return;
+        }
         payload.password = editPassword.trim();
       }
 
@@ -266,6 +288,8 @@ export default function StaffPage() {
       }
 
       setEditModalOpen(false);
+      setSuccessToast(data.message || "Staff member updated successfully!");
+      setTimeout(() => setSuccessToast(null), 5000);
       fetchStaffData();
     } catch (err: any) {
       setEditErrorMsg(err.message);
@@ -290,6 +314,8 @@ export default function StaffPage() {
 
       setDeleteModalOpen(false);
       setDeletingStaff(null);
+      setSuccessToast("Staff account deleted successfully.");
+      setTimeout(() => setSuccessToast(null), 5000);
       fetchStaffData();
     } catch (err: any) {
       alert(err.message);
@@ -314,6 +340,11 @@ export default function StaffPage() {
         address: selfAddress,
       };
       if (selfPassword.trim()) {
+        if (selfPassword.trim().length < 4) {
+          setSelfError("New password must be at least 4 characters long.");
+          setSelfSaving(false);
+          return;
+        }
         payload.password = selfPassword.trim();
       }
 
@@ -327,8 +358,10 @@ export default function StaffPage() {
         throw new Error(data.message || "Failed to save profile changes.");
       }
 
-      setSelfMsg("Your profile details have been updated successfully!");
+      setSelfMsg(data.message || "Your profile details have been updated successfully!");
       setSelfPassword("");
+      setShowSelfPassword(false);
+      setTimeout(() => setSelfMsg(""), 5000);
       fetchStaffData();
     } catch (err: any) {
       setSelfError(err.message);
@@ -367,6 +400,14 @@ export default function StaffPage() {
           </button>
         )}
       </div>
+
+      {/* Global Success Notification */}
+      {successToast && (
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2.5 shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{successToast}</span>
+        </div>
+      )}
 
       {/* VIEW FOR NON-ADMIN (Cashier / Stock Manager): View & Edit Own Personal Details */}
       {!isAdmin && (
@@ -498,13 +539,22 @@ export default function StaffPage() {
               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Change Password (Leave blank to keep current)
               </label>
-              <input
-                type="password"
-                placeholder="Enter new password (min 6 characters)"
-                value={selfPassword}
-                onChange={(e) => setSelfPassword(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
+              <div className="relative">
+                <input
+                  type={showSelfPassword ? "text" : "password"}
+                  placeholder="Enter new password (min 4 characters)"
+                  value={selfPassword}
+                  onChange={(e) => setSelfPassword(e.target.value)}
+                  className="w-full p-2.5 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSelfPassword(!showSelfPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showSelfPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="pt-2">
@@ -834,14 +884,24 @@ export default function StaffPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Password *</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Min 6 characters"
-                    value={addPassword}
-                    onChange={(e) => setAddPassword(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showAddPassword ? "text" : "password"}
+                      required
+                      placeholder="Min 4 characters"
+                      minLength={4}
+                      value={addPassword}
+                      onChange={(e) => setAddPassword(e.target.value)}
+                      className="w-full p-2.5 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAddPassword(!showAddPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -990,13 +1050,22 @@ export default function StaffPage() {
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Password Reset (Optional)
                   </label>
-                  <input
-                    type="password"
-                    placeholder="Leave blank to keep current"
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showEditPassword ? "text" : "password"}
+                      placeholder="Min 4 chars (leave blank to keep)"
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      className="w-full p-2.5 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

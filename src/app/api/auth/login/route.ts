@@ -13,8 +13,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { username },
+    const cleanUsername = username.trim();
+
+    const user = await db.user.findFirst({
+      where: {
+        username: {
+          equals: cleanUsername,
+          mode: "insensitive",
+        },
+      },
     });
 
     if (!user) {
