@@ -1,0 +1,168 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  owner
+  cashier
+  stock_handler
+}
+
+enum ProductStatus {
+  active
+  archived
+}
+
+enum SaleStatus {
+  completed
+  voided
+}
+
+model User {
+  id               Int           @id @default(autoincrement())
+  username         String        @unique
+  password         String
+  role             Role          @default(cashier)
+  fullName         String        @map("full_name")
+  gender           String        @default("Male")
+  race             String        @default("Malay")
+  address          String        @default("") @db.Text
+  phoneNumber      String        @map("phone_number")
+  securityQuestion String?       @map("security_question")
+  securityAnswer   String?       @map("security_answer")
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  sales            Sale[]
+  stockIntakes     StockIntake[]
+  expenses         Expense[]
+  activityLogs     ActivityLog[]
+
+  @@map("users")
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id        Int       @id @default(autoincrement())
+  name      String
+  contact   String?
+  email     String?
+  address   String?   @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  products  Product[]
+
+  @@map("suppliers")
+}
+
+model Product {
+  id          Int           @id @default(autoincrement())
+  barcode     String?       @unique
+  name        String
+  price       Decimal       @db.Decimal(10, 2)
+  costPrice   Decimal       @default(0.00) @map("cost_price") @db.Decimal(10, 2)
+  stock       Int           @default(0)
+  threshold   Int           @default(10)
+  categoryId  Int?          @map("category_id")
+  supplierId  Int?          @map("supplier_id")
+  status      ProductStatus @default(active)
+  isService   Boolean       @default(false) @map("is_service")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  category    Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supplier    Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  saleItems   SaleItem[]
+  stockIntakes StockIntake[]
+
+  @@map("products")
+}
+
+model Sale {
+  id             Int        @id @default(autoincrement())
+  userId         Int        @map("user_id")
+  subtotal       Decimal    @default(0.00) @db.Decimal(10, 2)
+  discountAmount Decimal    @default(0.00) @map("discount_amount") @db.Decimal(10, 2)
+  taxAmount      Decimal    @default(0.00) @map("tax_amount") @db.Decimal(10, 2)
+  total          Decimal    @db.Decimal(10, 2)
+  paymentMethod  String     @map("payment_method")
+  status         SaleStatus @default(completed)
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items          SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id          Int      @id @default(autoincrement())
+  saleId      Int      @map("sale_id")
+  productId   Int      @map("product_id")
+  quantity    Int
+  priceAtSale Decimal  @map("price_at_sale") @db.Decimal(10, 2)
+  costAtSale  Decimal  @default(0.00) @map("cost_at_sale") @db.Decimal(10, 2)
+  details     String?  @db.Text
+
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("sale_items")
+}
+
+model StockIntake {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  quantity  Int
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("stock_intake")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  category    String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  action    String
+  details   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("activity_log")
+}
+
+model Setting {
+  key   String @id @map("setting_key")
+  value String @map("setting_value")
+
+  @@map("settings")
+}
