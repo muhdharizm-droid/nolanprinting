@@ -15,19 +15,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e?: React.FormEvent, customUser?: string, customPass?: string) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
     setLoading(true);
-
-    const userToSubmit = customUser || username;
-    const passToSubmit = customPass || password;
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: userToSubmit, password: passToSubmit }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
@@ -43,12 +40,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const quickLogin = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    handleSubmit(undefined, u, p);
   };
 
   return (
@@ -140,39 +131,6 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign In to System"}
             <ArrowRight className="w-4 h-4" />
           </button>
-
-          {/* Quick Demo Logins for easy testing */}
-          <div className="pt-4 border-t border-slate-100">
-            <p className="text-xs text-center text-slate-400 font-medium mb-3">
-              Demo Credentials (Click to Autofill & Login):
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => quickLogin("Hariz", "admin123")}
-                className="p-2 text-xs bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 rounded-lg text-slate-700 font-medium transition text-center"
-              >
-                👑 Owner
-                <span className="block text-[10px] text-slate-400">Hariz</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => quickLogin("cashier", "cashier123")}
-                className="p-2 text-xs bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 border border-slate-200 rounded-lg text-slate-700 font-medium transition text-center"
-              >
-                💳 Cashier
-                <span className="block text-[10px] text-slate-400">cashier</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => quickLogin("stock", "stock123")}
-                className="p-2 text-xs bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-slate-200 rounded-lg text-slate-700 font-medium transition text-center"
-              >
-                📦 Stock
-                <span className="block text-[10px] text-slate-400">stock</span>
-              </button>
-            </div>
-          </div>
         </form>
 
         <div className="p-3.5 bg-slate-50 text-center border-t border-slate-100 text-[11px] text-slate-400">
