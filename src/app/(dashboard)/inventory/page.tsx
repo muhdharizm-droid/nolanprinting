@@ -37,6 +37,9 @@ interface Product {
   isService: boolean;
   category?: { id: number; name: string } | null;
   supplier?: { id: number; name: string } | null;
+  _count?: {
+    saleItems: number;
+  };
 }
 
 export default function InventoryPage() {
@@ -58,6 +61,12 @@ export default function InventoryPage() {
   const [intakeProduct, setIntakeProduct] = useState<Product | null>(null);
   const [intakeQty, setIntakeQty] = useState(10);
   const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
+
+  // Delete Action Modal State & Notification Banner
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
 
   // Form State
   const [formName, setFormName] = useState("");
@@ -258,26 +267,60 @@ export default function InventoryPage() {
     }
   };
 
-  // Archive / Restore / Delete
-  const handleArchive = async (p: Product) => {
-    if (!confirm(`Archive '${p.name}'? It will be hidden from POS.`)) return;
-    await fetch(`/api/products/${p.id}`, { method: "DELETE" });
-    fetchData();
+  // Direct Delete / Restore Handlers
+  const openDeleteModal = (p: Product) => {
+    setDeletingProduct(p);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProduct) return;
+    setDeleteLoading(true);
+    try {
+      const isArchivedTab = activeTab === "archived";
+      const url = isArchivedTab
+        ? `/api/products/${deletingProduct.id}?permanent=true`
+        : `/api/products/${deletingProduct.id}`;
+
+      const res = await fetch(url, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete product.");
+      }
+
+      setDeleteModalOpen(false);
+      setDeletingProduct(null);
+      setToastMsg({
+        text: data.message || `Product '${deletingProduct.name}' deleted successfully.`,
+        type: "success",
+      });
+      setTimeout(() => setToastMsg(null), 5000);
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete product.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleRestore = async (p: Product) => {
-    await fetch(`/api/products/${p.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "restore" }),
-    });
-    fetchData();
-  };
-
-  const handlePermanentDelete = async (p: Product) => {
-    if (!confirm(`Permanent deletion of '${p.name}' cannot be undone. Proceed?`)) return;
-    await fetch(`/api/products/${p.id}?permanent=true`, { method: "DELETE" });
-    fetchData();
+    try {
+      const res = await fetch(`/api/products/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message);
+      setToastMsg({
+        text: `Product '${p.name}' restored to active inventory.`,
+        type: "success",
+      });
+      setTimeout(() => setToastMsg(null), 4000);
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || "Failed to restore product");
+    }
   };
 
   return (
@@ -312,6 +355,19 @@ export default function InventoryPage() {
           </button>
         </div>
       </div>
+
+      {/* Global Notification Banner */}
+      {toastMsg && (
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-between gap-2 shadow-sm transition-all">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+            <span className="text-xs">{toastMsg.text}</span>
+          </div>
+          <button onClick={() => setToastMsg(null)} className="text-emerald-600 dark:text-emerald-400 hover:opacity-75">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Tabs & Search Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -497,11 +553,11 @@ export default function InventoryPage() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleArchive(p)}
-                                title="Archive"
-                                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition"
+                                onClick={() => openDeleteModal(p)}
+                                title="Delete Product"
+                                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
                               >
-                                <Archive className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </>
                           ) : (
@@ -515,8 +571,8 @@ export default function InventoryPage() {
                                 <span>{t("restore")}</span>
                               </button>
                               <button
-                                onClick={() => handlePermanentDelete(p)}
-                                title="Delete Permanently"
+                                onClick={() => openDeleteModal(p)}
+                                title="Purge Permanently"
                                 className="p-1.5 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -746,10 +802,10 @@ export default function InventoryPage() {
       {/* MODAL 3: Printable Barcode Label Modal */}
       {barcodeModalProduct && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-800">{t("print_barcodes")}</h3>
-              <button onClick={() => setBarcodeModalProduct(null)} className="text-slate-400 hover:text-slate-600">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("print_barcodes")}</h3>
+              <button onClick={() => setBarcodeModalProduct(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -773,11 +829,64 @@ export default function InventoryPage() {
                 </button>
                 <button
                   onClick={() => setBarcodeModalProduct(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl"
                 >
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Delete Confirmation Modal */}
+      {deleteModalOpen && deletingProduct && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center">
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">
+                Delete Product
+              </h3>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-1">
+                {deletingProduct.name}
+              </p>
+
+              {(deletingProduct._count?.saleItems || 0) > 0 ? (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-left">
+                  <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                    <strong className="block font-bold mb-1">
+                      ℹ️ Sales History Protected ({deletingProduct._count?.saleItems} sale{(deletingProduct._count?.saleItems || 0) > 1 ? "s" : ""})
+                    </strong>
+                    This product will be removed from your active catalog and POS register. All historical receipts, customer invoices, and financial reports will remain 100% intact.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  This product has <strong>0 sales history</strong>. It will be completely and permanently erased from the database.
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-xs transition"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50"
+              >
+                {deleteLoading ? "Deleting..." : "Yes, Delete Product"}
+              </button>
             </div>
           </div>
         </div>

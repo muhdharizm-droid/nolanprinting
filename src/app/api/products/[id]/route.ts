@@ -111,38 +111,101 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const { searchParams } = new URL(req.url);
     const permanent = searchParams.get("permanent") === "true";
 
-    const product = await db.product.findUnique({ where: { id } });
+    const product = await db.product.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { saleItems: true, stockIntakes: true },
+        },
+      },
+    });
+
     if (!product) {
       return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
     }
 
+    const salesCount = product._count.saleItems;
+
+    // Direct permanent delete requested from Archived tab
     if (permanent) {
       if (user.role !== "owner") {
-        return NextResponse.json({ success: false, message: "Only Owner can permanently delete products." }, { status: 403 });
+        return NextResponse.json({ success: false, message: "Only Store Owner can permanently purge products." }, { status: 403 });
+      }
+
+      if (salesCount > 0) {
+        return NextResponse.json({
+          success: false,
+          message: `Cannot permanently purge '${product.name}' because it is linked to ${salesCount} completed customer sales and receipts. It is already safely hidden from active catalog and POS.`,
+        }, { status: 400 });
+      }
+
+      if (product._count.stockIntakes > 0) {
+        await db.stockIntake.deleteMany({ where: { productId: id } });
       }
       await db.product.delete({ where: { id } });
+
+      await db.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "Product Purged",
+          details: `Permanently purged product ID: ${id} ('${product.name}') with 0 sales.`,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Product '${product.name}' was permanently purged from the database.`,
+      });
+    }
+
+    // Standard Direct Delete (from Active or Low Stock catalog)
+    if (salesCount === 0) {
+      // 1. Product never had sales: Permanently delete row from DB immediately
+      if (product._count.stockIntakes > 0) {
+        await db.stockIntake.deleteMany({ where: { productId: id } });
+      }
+      await db.product.delete({ where: { id } });
+
       await db.activityLog.create({
         data: {
           userId: user.id,
           action: "Product Deleted",
-          details: `Permanently deleted product ID: ${id} ('${product.name}')`,
+          details: `Directly deleted product '${product.name}' (0 sales recorded).`,
         },
       });
-      return NextResponse.json({ success: true, message: "Product permanently deleted." });
+
+      return NextResponse.json({
+        success: true,
+        deleted: true,
+        hasSales: false,
+        message: `Product '${product.name}' had no sales history and was permanently deleted.`,
+      });
     } else {
-      // Archive
+      // 2. Product has sales history: Remove from active catalog & POS, release barcode for reuse, protect sales snapshot
       await db.product.update({
         where: { id },
-        data: { status: "archived" },
+        data: {
+          status: "archived",
+          barcode: null, // free up barcode so it can be reused immediately
+          stock: 0,
+        },
       });
+
       await db.activityLog.create({
         data: {
           userId: user.id,
-          action: "Product Archived",
-          details: `Archived product '${product.name}' (ID: ${id})`,
+          action: "Product Removed",
+          details: `Removed '${product.name}' from catalog. Preserved ${salesCount} historical sales receipts.`,
         },
       });
-      return NextResponse.json({ success: true, message: "Product archived." });
+
+      return NextResponse.json({
+        success: true,
+        deleted: true,
+        hasSales: true,
+        salesCount,
+        message: `Product '${product.name}' was removed from your active catalog and POS. Its ${salesCount} historical sales record(s) and receipts were preserved.`,
+      });
     }
   } catch (error: any) {
     console.error("Delete product error:", error);
