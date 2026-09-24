@@ -22,6 +22,7 @@ import {
   DollarSign,
   User,
   Shield,
+  BellRing,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { formatMYR, formatDate } from "@/lib/utils";
@@ -143,6 +144,16 @@ export default function HomePage() {
       roles: ["owner", "stock_handler"],
       badge: data?.stats.lowStockCount ? `${data.stats.lowStockCount} Low` : undefined,
       badgeColor: "bg-amber-100 text-amber-800",
+    },
+    {
+      title: "Low-Stock Pipeline",
+      desc: "Automated reorder workflows, supplier PO generation, and delivery restock",
+      href: "/workflows/low-stock",
+      icon: BellRing,
+      color: "from-rose-600 to-orange-600",
+      roles: ["owner", "stock_handler"],
+      badge: data?.stats.lowStockCount ? `${data.stats.lowStockCount} Alerts` : undefined,
+      badgeColor: "bg-rose-100 text-rose-800",
     },
     {
       title: "Transactions",
@@ -397,22 +408,22 @@ export default function HomePage() {
           </Link>
 
           <Link
-            href="/inventory"
+            href="/workflows/low-stock"
             className={`p-5 rounded-2xl border transition block ${
               data?.stats.lowStockCount
-                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 hover:border-amber-500"
                 : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
             }`}
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
               <span className="text-xs font-bold uppercase tracking-wider">Stock Alerts</span>
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <BellRing className="w-4 h-4 text-amber-500" />
             </div>
             <div className="text-2xl font-black text-amber-600">
               {data?.stats.lowStockCount ?? 0} items
             </div>
             <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-1 block">
-              {data?.stats.lowStockCount ? "Needs restock" : "All healthy"}
+              {data?.stats.lowStockCount ? "Manage reorders &rarr;" : "All healthy"}
             </span>
           </Link>
 

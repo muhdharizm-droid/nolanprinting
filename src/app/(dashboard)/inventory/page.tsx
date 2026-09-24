@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Boxes,
   Plus,
@@ -25,6 +26,8 @@ import {
   Layers,
   ClipboardList,
   BarChart3,
+  BellRing,
+  ArrowRight,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import JsBarcode from "jsbarcode";
@@ -626,6 +629,33 @@ export default function InventoryPage() {
           </select>
         </div>
       </div>
+
+      {/* Low-Stock Workflow Callout Banner */}
+      {activeTab === "low_stock" && (
+        <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-amber-500/30">
+              <BellRing className="w-4 h-4 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="font-bold text-amber-950 dark:text-amber-200">
+                Low-Stock Reordering & PO Pipeline
+              </h4>
+              <p className="text-amber-800 dark:text-amber-300 text-[11px] mt-0.5">
+                {products.filter((p) => p.status === "active" && !p.isService && p.stock <= p.threshold).length} items require reordering. Issue purchase orders, send WhatsApp requests to suppliers, and track deliveries.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/workflows/low-stock"
+            className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-xl shadow-md shadow-amber-600/20 transition shrink-0 text-center"
+          >
+            <span>Open Reorder Pipeline</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Inventory Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">

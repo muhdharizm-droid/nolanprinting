@@ -43,6 +43,8 @@ model User {
   stockUsages      StockUsage[]
   expenses         Expense[]
   activityLogs     ActivityLog[]
+  createdRestocks  RestockWorkflow[] @relation("RestockCreatedBy")
+  resolvedRestocks RestockWorkflow[] @relation("RestockResolvedBy")
 
   @@map("users")
 }
@@ -63,7 +65,8 @@ model Supplier {
   email     String?
   address   String?   @db.Text
   createdAt DateTime  @default(now()) @map("created_at")
-  products  Product[]
+  products         Product[]
+  restockWorkflows RestockWorkflow[]
 
   @@map("suppliers")
 }
@@ -89,8 +92,9 @@ model Product {
   category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   saleItems    SaleItem[]
-  stockIntakes StockIntake[]
-  stockUsages  StockUsage[]
+  stockIntakes     StockIntake[]
+  stockUsages      StockUsage[]
+  restockWorkflows RestockWorkflow[]
 
   @@map("products")
 }
@@ -186,4 +190,37 @@ model Setting {
   value String @map("setting_value")
 
   @@map("settings")
+}
+
+enum RestockStatus {
+  alert_triggered
+  po_issued
+  in_transit
+  received
+  dismissed
+}
+
+model RestockWorkflow {
+  id           Int           @id @default(autoincrement())
+  productId    Int           @map("product_id")
+  supplierId   Int?          @map("supplier_id")
+  currentStock Int           @map("current_stock")
+  threshold    Int
+  suggestedQty Int           @default(10) @map("suggested_qty")
+  orderQty     Int?          @map("order_qty")
+  status       RestockStatus @default(alert_triggered)
+  poNumber     String?       @map("po_number")
+  expectedDate DateTime?     @map("expected_date")
+  notes        String?       @db.Text
+  createdById  Int?          @map("created_by_id")
+  resolvedById Int?          @map("resolved_by_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  createdBy  User?     @relation("RestockCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  resolvedBy User?     @relation("RestockResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@map("restock_workflows")
 }

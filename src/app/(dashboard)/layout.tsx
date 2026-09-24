@@ -25,10 +25,12 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  BellRing,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { useTheme } from "@/lib/theme/context";
 import BrandLoader from "@/components/BrandLoader";
+import LowStockAlertBell from "@/components/LowStockAlertBell";
 
 interface UserProfile {
   id: number;
@@ -96,7 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push("/home");
       }
     } else if (user.role === "stock_handler") {
-      const allowedStock = ["/home", "/inventory", "/categories", "/suppliers", "/profile"];
+      const allowedStock = ["/home", "/inventory", "/categories", "/suppliers", "/profile", "/workflows", "/workflows/low-stock"];
       const isAllowed = allowedStock.some(
         (r) => pathname === r || pathname.startsWith(r + "/")
       );
@@ -164,6 +166,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           label: t("suppliers"),
           href: "/suppliers",
           icon: Truck,
+          roles: ["owner", "stock_handler"],
+        },
+      ],
+    },
+    {
+      titleEn: "WORKFLOWS & PIPELINES",
+      titleMs: "ALIRAN KERJA & PIPELINE",
+      items: [
+        {
+          label: language === "ms" ? "Amaran Stok & Pesanan" : "Low-Stock Reordering",
+          href: "/workflows/low-stock",
+          icon: BellRing,
           roles: ["owner", "stock_handler"],
         },
       ],
@@ -254,6 +268,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex items-center gap-2">
+          {user && (user.role === "owner" || user.role === "stock_handler") && (
+            <LowStockAlertBell />
+          )}
           {/* Mobile Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -422,6 +439,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto bg-slate-50 dark:bg-slate-950">
+        {/* Desktop Sticky Header Bar */}
+        <header className="sticky top-0 z-30 hidden md:flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 py-2.5 transition-colors">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span>Nolan Printing Services</span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-slate-700 dark:text-slate-300 capitalize">{pathname.split("/")[1] || "Home"}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Low-Stock Alert Bell for Owner & Stock Handler */}
+            {user && (user.role === "owner" || user.role === "stock_handler") && (
+              <LowStockAlertBell />
+            )}
+
+            {/* Profile Quick Access */}
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 py-1 px-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60 transition"
+            >
+              <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{user?.fullName?.split(" ")[0]}</span>
+            </Link>
+          </div>
+        </header>
+
         <div className="p-4 md:p-8 flex-1">{children}</div>
       </main>
     </div>
