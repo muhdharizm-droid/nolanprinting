@@ -537,52 +537,52 @@ export default function InventoryPage() {
       {/* MODAL 1: Add / Edit Product Modal */}
       {addModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-800">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">
                 {editProduct ? t("edit_product") : t("add_product")}
               </h3>
-              <button onClick={() => setAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmitProduct} className="p-6 space-y-4 text-xs">
               {errorMsg && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-semibold">
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 font-semibold">
                   {errorMsg}
                 </div>
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">{t("product_name")} *</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("product_name")} *</label>
                 <input
                   type="text"
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="e.g. A4 Paper Ream or Pen Biru"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-600 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">{t("barcode")} / SKU</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("barcode")} / SKU</label>
                   <input
                     type="text"
                     value={formBarcode}
                     onChange={(e) => setFormBarcode(e.target.value)}
                     placeholder="Scan or enter barcode"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">{t("category")}</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("category")}</label>
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
                   >
                     <option value="">None / Uncategorized</option>
                     {categories.map((c) => (
@@ -596,7 +596,7 @@ export default function InventoryPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">{t("selling_price")} *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("selling_price")} *</label>
                   <input
                     type="number"
                     step="0.05"
@@ -604,18 +604,18 @@ export default function InventoryPage() {
                     value={formPrice}
                     onChange={(e) => setFormPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">{t("cost_price")}</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("cost_price")}</label>
                   <input
                     type="number"
                     step="0.05"
                     value={formCostPrice}
                     onChange={(e) => setFormCostPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   />
                 </div>
               </div>
@@ -623,32 +623,32 @@ export default function InventoryPage() {
               {!formIsService && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Initial Stock Count</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Initial Stock Count</label>
                     <input
                       type="number"
                       value={formStock}
                       onChange={(e) => setFormStock(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">{t("threshold")}</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("threshold")}</label>
                     <input
                       type="number"
                       value={formThreshold}
                       onChange={(e) => setFormThreshold(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">{t("supplier")}</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("supplier")}</label>
                 <select
                   value={formSupplier}
                   onChange={(e) => setFormSupplier(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
                 >
                   <option value="">None / Direct</option>
                   {suppliers.map((s) => (
@@ -667,7 +667,7 @@ export default function InventoryPage() {
                   onChange={(e) => setFormIsService(e.target.checked)}
                   className="w-4 h-4 rounded text-blue-600"
                 />
-                <label htmlFor="isServiceCheck" className="text-xs font-semibold text-slate-700">
+                <label htmlFor="isServiceCheck" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   This is a Service / Custom Work item (no physical stock decrement)
                 </label>
               </div>
@@ -676,7 +676,7 @@ export default function InventoryPage() {
                 <button
                   type="button"
                   onClick={() => setAddModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
                   {t("cancel")}
                 </button>
@@ -696,30 +696,30 @@ export default function InventoryPage() {
       {/* MODAL 2: Quick Stock Intake Modal */}
       {intakeProduct && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-800">{t("add_stock")}</h3>
-              <button onClick={() => setIntakeProduct(null)} className="text-slate-400 hover:text-slate-600">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("add_stock")}</h3>
+              <button onClick={() => setIntakeProduct(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleIntakeSubmit} className="p-6 space-y-4 text-xs">
               <div>
-                <span className="text-slate-400 block mb-0.5">Product:</span>
-                <span className="text-sm font-bold text-slate-900">{intakeProduct.name}</span>
-                <span className="block text-slate-500 mt-1">Current Stock: {intakeProduct.stock} units</span>
+                <span className="text-slate-400 dark:text-slate-500 block mb-0.5">Product:</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{intakeProduct.name}</span>
+                <span className="block text-slate-500 dark:text-slate-400 mt-1">Current Stock: {intakeProduct.stock} units</span>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Units to Add</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Units to Add</label>
                 <input
                   type="number"
                   min="1"
                   required
                   value={intakeQty}
                   onChange={(e) => setIntakeQty(parseInt(e.target.value) || 1)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-lg font-black text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-lg font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -727,7 +727,7 @@ export default function InventoryPage() {
                 <button
                   type="button"
                   onClick={() => setIntakeProduct(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
                   {t("cancel")}
                 </button>
