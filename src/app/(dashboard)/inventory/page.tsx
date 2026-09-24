@@ -460,7 +460,15 @@ export default function InventoryPage() {
             <Boxes className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("inventory")}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("inventory")}</h1>
+              {loading && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                  Syncing...
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">Track stock levels, intake batches, barcodes, and pricing</p>
           </div>
         </div>
@@ -637,7 +645,42 @@ export default function InventoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredList.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 7 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="p-3.5">
+                      <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </td>
+                    <td className="p-3.5">
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+                        <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800/60 rounded" />
+                      </div>
+                    </td>
+                    <td className="p-3.5">
+                      <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto" />
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <div className="h-4 w-14 bg-slate-200 dark:bg-slate-800 rounded ml-auto" />
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <div className="h-4 w-14 bg-slate-200 dark:bg-slate-800 rounded ml-auto" />
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto" />
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <div className="h-7 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl ml-auto" />
+                    </td>
+                  </tr>
+                ))
+              ) : filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
                     No products found matching your filter criteria.

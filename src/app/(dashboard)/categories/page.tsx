@@ -247,8 +247,26 @@ export default function CategoriesPage() {
 
       {/* Categories Grid */}
       {loading ? (
-        <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs">
-          Loading product categories...
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm animate-pulse space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                <div className="w-10 h-5 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-3 w-1/2 bg-slate-100 dark:bg-slate-800/60 rounded" />
+              </div>
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : categories.length === 0 ? (
         <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">

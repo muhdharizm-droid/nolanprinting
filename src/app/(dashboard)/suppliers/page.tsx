@@ -232,8 +232,34 @@ export default function SuppliersPage() {
       </div>
 
       {/* Suppliers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {suppliers.map((sup) => (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-pulse space-y-4"
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1.5 w-2/3">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-3 w-1/2 bg-slate-100 dark:bg-slate-800/60 rounded" />
+                </div>
+                <div className="w-12 h-6 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              </div>
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="h-3 w-3/4 bg-slate-100 dark:bg-slate-800/60 rounded" />
+                <div className="h-3 w-1/2 bg-slate-100 dark:bg-slate-800/60 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : suppliers.length === 0 ? (
+        <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+          No suppliers registered yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {suppliers.map((sup) => (
           <div
             key={sup.id}
             className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors"
@@ -301,7 +327,8 @@ export default function SuppliersPage() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* MODAL: Add Supplier */}
       {addModalOpen && (

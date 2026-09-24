@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { useTheme } from "@/lib/theme/context";
+import BrandLoader from "@/components/BrandLoader";
 
 interface UserProfile {
   id: number;
@@ -113,13 +114,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg animate-pulse">
-            <Image src="/images/logo.jpeg" alt="Logo" fill className="object-cover" />
-          </div>
-          <p className="text-slate-300 text-xs font-medium">Loading Nolan Printing...</p>
-        </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <BrandLoader
+          fullScreen={false}
+          message="Verifying session..."
+          submessage="Securing your Nolan Printing workspace"
+        />
       </div>
     );
   }

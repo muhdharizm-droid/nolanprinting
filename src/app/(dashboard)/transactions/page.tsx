@@ -162,7 +162,36 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {sales.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse">
+                    <td className="p-3.5">
+                      <div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </td>
+                    <td className="p-3.5">
+                      <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </td>
+                    <td className="p-3.5">
+                      <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </td>
+                    <td className="p-3.5">
+                      <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </td>
+                    <td className="p-3.5">
+                      <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded ml-auto" />
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto" />
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <div className="h-7 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg ml-auto" />
+                    </td>
+                  </tr>
+                ))
+              ) : sales.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
                     No transactions found.

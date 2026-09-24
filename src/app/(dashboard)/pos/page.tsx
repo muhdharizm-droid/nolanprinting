@@ -124,10 +124,13 @@ export default function PosPage() {
   const [calcCopies, setCalcCopies] = useState<number>(1);
   const [calcCustomRate, setCalcCustomRate] = useState<string>("");
 
+  const [catalogLoading, setCatalogLoading] = useState(true);
+
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch products & categories on load
   const loadData = async () => {
+    setCatalogLoading(true);
     try {
       const [prodRes, catRes] = await Promise.all([
         fetch("/api/products?status=active&exclude_raw=true"),
@@ -139,6 +142,8 @@ export default function PosPage() {
       if (catData.success) setCategories(catData.categories);
     } catch (e) {
       console.error("Failed to load POS catalog", e);
+    } finally {
+      setCatalogLoading(false);
     }
   };
 
@@ -538,7 +543,28 @@ export default function PosPage() {
 
           {/* Product Grid */}
           <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 p-1">
-            {filteredProducts.map((product) => {
+            {catalogLoading ? (
+              Array.from({ length: 8 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 animate-pulse flex flex-col justify-between h-28 space-y-3"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="h-2.5 w-12 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="h-3.5 w-14 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="h-3.5 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="h-2.5 w-1/2 bg-slate-100 dark:bg-slate-800/60 rounded" />
+                  </div>
+                  <div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded ml-auto" />
+                </div>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full p-8 text-center text-slate-400 font-medium text-xs">
+                No items found.
+              </div>
+            ) : filteredProducts.map((product) => {
               const isLowStock = !product.isService && product.stock <= product.threshold;
               const isOut = !product.isService && product.stock <= 0;
 

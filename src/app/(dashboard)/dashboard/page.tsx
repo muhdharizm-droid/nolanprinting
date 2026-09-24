@@ -121,17 +121,33 @@ export default function DashboardPage() {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        {/* Total Revenue */}
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors">
-          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">{t("revenue")}</span>
-            <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div className="text-lg font-black text-slate-900 dark:text-white">{formatMYR(summary?.totalRevenue)}</div>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-            {summary?.totalTransactions} transactions
-          </span>
-        </div>
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm animate-pulse space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="w-4 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+              </div>
+              <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-2.5 w-16 bg-slate-100 dark:bg-slate-800/60 rounded" />
+            </div>
+          ))
+        ) : (
+          <>
+            {/* Total Revenue */}
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors">
+              <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider">{t("revenue")}</span>
+                <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-lg font-black text-slate-900 dark:text-white">{formatMYR(summary?.totalRevenue)}</div>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                {summary?.totalTransactions} transactions
+              </span>
+            </div>
 
         {/* COGS */}
         <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors">
@@ -196,6 +212,8 @@ export default function DashboardPage() {
             <ArrowUpRight className="w-3 h-3" />
           </span>
         </Link>
+        </>
+        )}
       </div>
 
       {/* Analytics Charts Grid */}
