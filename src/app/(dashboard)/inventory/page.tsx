@@ -24,11 +24,13 @@ import {
   History,
   Layers,
   ClipboardList,
+  BarChart3,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import JsBarcode from "jsbarcode";
 import { useI18n } from "@/lib/i18n/context";
 import { formatMYR, formatDate } from "@/lib/utils";
+import StockIntakeReportView from "@/components/StockIntakeReportView";
 
 interface Product {
   id: number;
@@ -92,6 +94,9 @@ export default function InventoryPage() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [usageHistory, setUsageHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Stock Intake Report Modal State
+  const [intakeReportModalOpen, setIntakeReportModalOpen] = useState(false);
 
   // Form State
   const [formName, setFormName] = useState("");
@@ -461,6 +466,14 @@ export default function InventoryPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setIntakeReportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Intake Report</span>
+          </button>
+
           <button
             onClick={openHistoryModal}
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
@@ -1542,6 +1555,48 @@ export default function InventoryPage() {
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: Stock Intake Report Modal */}
+      {intakeReportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 md:p-6">
+          <div className="bg-slate-50 dark:bg-slate-950 w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="p-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-800 dark:text-white">
+                    Stock Intake & Restock Analytics
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Comprehensive visual report on stock arrivals, volumes, and material replenishment
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIntakeReportModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 md:p-6 overflow-y-auto flex-1">
+              <StockIntakeReportView />
+            </div>
+
+            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                onClick={() => setIntakeReportModalOpen(false)}
+                className="px-5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs transition"
+              >
+                Close Report
               </button>
             </div>
           </div>

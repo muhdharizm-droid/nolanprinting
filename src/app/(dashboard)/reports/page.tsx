@@ -12,6 +12,7 @@ import {
   Layers,
   Package,
   Printer,
+  Truck,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -29,6 +30,7 @@ import {
 import * as XLSX from "xlsx";
 import { useI18n } from "@/lib/i18n/context";
 import { formatMYR } from "@/lib/utils";
+import StockIntakeReportView from "@/components/StockIntakeReportView";
 
 interface CategoryData {
   name: string;
@@ -91,6 +93,9 @@ export default function ReportsPage() {
   const [productData, setProductData] = useState<ProductSalesData[]>([]);
   const [expensesByCategory, setExpensesByCategory] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Active Report Tab: Financial Statements vs Stock Intake Trends
+  const [activeReportTab, setActiveReportTab] = useState<"financial" | "stock_intake">("financial");
 
   // Category & Product Drilldown Filters
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -198,7 +203,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
+      {/* Top Header & Section Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center font-bold">
@@ -207,22 +212,56 @@ export default function ReportsPage() {
           <div>
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("analytics")}</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Category revenue share, product-level sales drilldown & executive financial statement
+              Financial statements, product revenue breakdown & stock intake trends
             </p>
           </div>
         </div>
 
-        <button
-          onClick={handleExportExcel}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
-        >
-          <Download className="w-4 h-4" />
-          <span>Export Multi-Sheet Excel (.xlsx)</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Tab Switcher */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setActiveReportTab("financial")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                activeReportTab === "financial"
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Financials & Sales</span>
+            </button>
+            <button
+              onClick={() => setActiveReportTab("stock_intake")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                activeReportTab === "stock_intake"
+                  ? "bg-emerald-600 text-white shadow-sm font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Stock Intake & Restock</span>
+            </button>
+          </div>
+
+          {activeReportTab === "financial" && (
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export Excel</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Row 1: Executive P&L Financial Statement Card + Category Sales Pie Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {activeReportTab === "stock_intake" ? (
+        <StockIntakeReportView />
+      ) : (
+        <>
+          {/* Row 1: Executive P&L Financial Statement Card + Category Sales Pie Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Executive P&L Financial Statement Card */}
         <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors">
           <div>
@@ -566,6 +605,8 @@ export default function ReportsPage() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
