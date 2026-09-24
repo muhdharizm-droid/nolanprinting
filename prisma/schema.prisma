@@ -78,8 +78,9 @@ model Product {
   categoryId  Int?          @map("category_id")
   supplierId  Int?          @map("supplier_id")
   status      ProductStatus @default(active)
-  isService   Boolean       @default(false) @map("is_service")
-  createdAt   DateTime      @default(now()) @map("created_at")
+  isService     Boolean       @default(false) @map("is_service")
+  isRawMaterial Boolean       @default(false) @map("is_raw_material")
+  createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   category    Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)

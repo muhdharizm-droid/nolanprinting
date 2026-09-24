@@ -56,6 +56,12 @@ export async function POST(req: NextRequest) {
             throw new Error(`Product #${item.id} not found.`);
           }
 
+          if (product.isRawMaterial) {
+            throw new Error(
+              `'${product.name}' is an internal printing supply/raw material and cannot be sold in transactions.`
+            );
+          }
+
           if (product.stock < qty) {
             throw new Error(
               `Insufficient stock for '${product.name}'. Available: ${product.stock} units.`

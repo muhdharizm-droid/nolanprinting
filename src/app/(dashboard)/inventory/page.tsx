@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   X,
   Printer,
+  FileText,
+  Info,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import JsBarcode from "jsbarcode";
@@ -36,6 +38,7 @@ interface Product {
   supplierId: number | null;
   status: "active" | "archived";
   isService: boolean;
+  isRawMaterial: boolean;
   category?: { id: number; name: string } | null;
   supplier?: { id: number; name: string } | null;
   _count?: {
@@ -53,7 +56,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [activeTab, setActiveTab] = useState<"active" | "low_stock" | "archived">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "retail" | "raw_material" | "service" | "low_stock" | "archived">("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
 
@@ -79,7 +82,7 @@ export default function InventoryPage() {
   const [formThreshold, setFormThreshold] = useState("10");
   const [formCategory, setFormCategory] = useState("");
   const [formSupplier, setFormSupplier] = useState("");
-  const [formIsService, setFormIsService] = useState(false);
+  const [formItemType, setFormItemType] = useState<"retail" | "raw_material" | "service">("retail");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -137,6 +140,9 @@ export default function InventoryPage() {
   // Tab Filtering
   const filteredList = products.filter((p) => {
     if (activeTab === "active" && p.status !== "active") return false;
+    if (activeTab === "retail" && (p.status !== "active" || p.isService || p.isRawMaterial)) return false;
+    if (activeTab === "raw_material" && (p.status !== "active" || !p.isRawMaterial)) return false;
+    if (activeTab === "service" && (p.status !== "active" || !p.isService)) return false;
     if (activeTab === "archived" && p.status !== "archived") return false;
     if (activeTab === "low_stock" && (p.status !== "active" || p.isService || p.stock > p.threshold)) return false;
 
@@ -160,13 +166,15 @@ export default function InventoryPage() {
       Barcode_SKU: p.barcode || "N/A",
       Product_Name: p.name,
       Category: p.category?.name || "Uncategorized",
+      Classification: p.isRawMaterial ? "Raw Material / Printing Supply" : p.isService ? "Service" : "Retail Merchandise",
+      Involved_In_POS_Transactions: p.isRawMaterial ? "No (Internal Paper/Supply)" : "Yes",
       Supplier: p.supplier?.name || "N/A",
-      Selling_Price_MYR: Number(p.price).toFixed(2),
+      Selling_Price_MYR: p.isRawMaterial ? "N/A" : Number(p.price).toFixed(2),
       Cost_Price_MYR: Number(p.costPrice).toFixed(2),
-      Current_Stock: p.stock,
-      Low_Stock_Threshold: p.threshold,
+      Current_Stock: p.isService ? "Unlimited" : p.stock,
+      Low_Stock_Threshold: p.isService ? "N/A" : p.threshold,
+      Total_Valuation_MYR: p.isService ? "0.00" : (Number(p.costPrice) * p.stock).toFixed(2),
       Status: p.status,
-      Type: p.isService ? "Service" : "Physical",
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -186,7 +194,7 @@ export default function InventoryPage() {
     setFormThreshold("10");
     setFormCategory("");
     setFormSupplier("");
-    setFormIsService(false);
+    setFormItemType("retail");
     setErrorMsg("");
     setAddModalOpen(true);
   };
@@ -202,7 +210,13 @@ export default function InventoryPage() {
     setFormThreshold(p.threshold.toString());
     setFormCategory(p.categoryId ? p.categoryId.toString() : "");
     setFormSupplier(p.supplierId ? p.supplierId.toString() : "");
-    setFormIsService(p.isService);
+    if (p.isRawMaterial) {
+      setFormItemType("raw_material");
+    } else if (p.isService) {
+      setFormItemType("service");
+    } else {
+      setFormItemType("retail");
+    }
     setErrorMsg("");
     setAddModalOpen(true);
   };
@@ -213,16 +227,20 @@ export default function InventoryPage() {
     setSaving(true);
     setErrorMsg("");
 
+    const isRaw = formItemType === "raw_material";
+    const isSvc = formItemType === "service";
+
     const payload = {
       name: formName,
       barcode: formBarcode || null,
-      price: parseFloat(formPrice),
+      price: isRaw ? 0 : parseFloat(formPrice || "0"),
       costPrice: parseFloat(formCostPrice || "0"),
-      stock: parseInt(formStock || "0", 10),
-      threshold: parseInt(formThreshold || "10", 10),
+      stock: isSvc ? 0 : parseInt(formStock || "0", 10),
+      threshold: isSvc ? 0 : parseInt(formThreshold || "10", 10),
       categoryId: formCategory ? parseInt(formCategory, 10) : null,
       supplierId: formSupplier ? parseInt(formSupplier, 10) : null,
-      isService: formIsService,
+      isService: isSvc,
+      isRawMaterial: isRaw,
     };
 
     try {
@@ -380,20 +398,53 @@ export default function InventoryPage() {
       {/* Tabs & Search Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Tabs */}
-        <div className="flex items-center gap-2 bg-slate-200/70 dark:bg-slate-800 p-1 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-slate-200/70 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab("active")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
               activeTab === "active"
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            Active Products ({products.filter((p) => p.status === "active").length})
+            All Active ({products.filter((p) => p.status === "active").length})
+          </button>
+          <button
+            onClick={() => setActiveTab("retail")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === "retail"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
+            }`}
+          >
+            <Boxes className="w-3.5 h-3.5" />
+            <span>Retail Products ({products.filter((p) => p.status === "active" && !p.isService && !p.isRawMaterial).length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("raw_material")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === "raw_material"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Paper & Supplies ({products.filter((p) => p.status === "active" && p.isRawMaterial).length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("service")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === "service"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "text-indigo-700 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200"
+            }`}
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Services ({products.filter((p) => p.status === "active" && p.isService).length})</span>
           </button>
           <button
             onClick={() => setActiveTab("low_stock")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === "low_stock"
                 ? "bg-amber-500 text-white shadow-sm"
                 : "text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200"
@@ -404,7 +455,7 @@ export default function InventoryPage() {
           </button>
           <button
             onClick={() => setActiveTab("archived")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
               activeTab === "archived"
                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -451,6 +502,7 @@ export default function InventoryPage() {
                 <th className="p-3.5">{t("barcode")}</th>
                 <th className="p-3.5">{t("product_name")}</th>
                 <th className="p-3.5">{t("category")}</th>
+                <th className="p-3.5 text-center">Classification</th>
                 <th className="p-3.5 text-right">{t("selling_price")}</th>
                 <th className="p-3.5 text-right">{t("cost_price")}</th>
                 <th className="p-3.5 text-center">{t("stock_level")}</th>
@@ -461,7 +513,7 @@ export default function InventoryPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
+                  <td colSpan={9} className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
                     No products found matching your filter criteria.
                   </td>
                 </tr>
@@ -490,11 +542,6 @@ export default function InventoryPage() {
                       {/* Product Name */}
                       <td className="p-3.5">
                         <div className="font-bold text-slate-800 dark:text-white">{p.name}</div>
-                        {p.isService && (
-                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/60 px-1 rounded">
-                            Service
-                          </span>
-                        )}
                       </td>
 
                       {/* Category */}
@@ -502,9 +549,39 @@ export default function InventoryPage() {
                         {p.category?.name || <span className="text-slate-300 dark:text-slate-600">-</span>}
                       </td>
 
+                      {/* Classification Type */}
+                      <td className="p-3.5 text-center">
+                        {p.isRawMaterial ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <FileText className="w-3 h-3" />
+                            <span>Paper / Supply</span>
+                          </span>
+                        ) : p.isService ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                            <Printer className="w-3 h-3" />
+                            <span>Print Service</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <Boxes className="w-3 h-3" />
+                            <span>Retail</span>
+                          </span>
+                        )}
+                      </td>
+
                       {/* Selling Price */}
                       <td className="p-3.5 text-right font-bold text-slate-900 dark:text-white">
-                        {formatMYR(p.price)}
+                        {p.isRawMaterial ? (
+                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 italic">
+                            Internal Use
+                          </span>
+                        ) : p.isService ? (
+                          <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                            Calculator
+                          </span>
+                        ) : (
+                          formatMYR(p.price)
+                        )}
                       </td>
 
                       {/* Cost Price */}
@@ -658,38 +735,179 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("selling_price")} *</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    required
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("cost_price")}</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={formCostPrice}
-                    onChange={(e) => setFormCostPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  />
+              {/* Item Classification Selector */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Item Classification *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormItemType("retail")}
+                    className={`p-3 rounded-xl border text-left flex flex-col justify-between transition ${
+                      formItemType === "retail"
+                        ? "border-blue-600 bg-blue-50/80 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 ring-2 ring-blue-600/30"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <Boxes className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>Retail Merchandise</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+                      Sold directly at POS register (Stationery, pens, merchandise)
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormItemType("raw_material");
+                      const paperCat = categories.find((c) => c.name.toLowerCase().includes("paper"));
+                      if (paperCat && !formCategory) setFormCategory(paperCat.id.toString());
+                    }}
+                    className={`p-3 rounded-xl border text-left flex flex-col justify-between transition ${
+                      formItemType === "raw_material"
+                        ? "border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-600/30"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>Paper & Supply</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+                      Papers, toners & raw materials — <strong>not sold in POS</strong>
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormItemType("service")}
+                    className={`p-3 rounded-xl border text-left flex flex-col justify-between transition ${
+                      formItemType === "service"
+                        ? "border-purple-600 bg-purple-50/80 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-600/30"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <Printer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span>Print Service</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+                      Custom print / copy work (calculated at POS)
+                    </p>
+                  </button>
                 </div>
               </div>
 
-              {!formIsService && (
+              {/* Informative Banner for Paper & Supplies */}
+              {formItemType === "raw_material" && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>
+                    <strong>Internal Store Inventory:</strong> This item (e.g. A4 70gsm, A4 80gsm Double A reams, art cards, laminate film) will be tracked for stock count, batches, and reorder alerts, but will <strong>NOT be involved in POS sales transactions</strong>.
+                  </span>
+                </div>
+              )}
+
+              {/* Price Fields */}
+              {formItemType === "raw_material" ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Initial Stock Count</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Unit Cost Price (RM) *
+                    </label>
                     <input
                       type="number"
+                      step="0.01"
+                      required
+                      value={formCostPrice}
+                      onChange={(e) => setFormCostPrice(e.target.value)}
+                      placeholder="e.g. 11.50 per ream"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Purchase cost from paper distributor</span>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      POS Selling Price
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      value="N/A (Internal Material)"
+                      className="w-full p-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-400 cursor-not-allowed"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Excluded from POS transactions</span>
+                  </div>
+                </div>
+              ) : formItemType === "service" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Base Rate / Unit (RM)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Pricing matrix applied at POS</span>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("cost_price")}</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formCostPrice}
+                      onChange={(e) => setFormCostPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("selling_price")} *</label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      required
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("cost_price")}</label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={formCostPrice}
+                      onChange={(e) => setFormCostPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Stock and Threshold Fields */}
+              {formItemType !== "service" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {formItemType === "raw_material" ? "Current Stock (Reams / Packs / Units)" : "Initial Stock Count"} *
+                    </label>
+                    <input
+                      type="number"
+                      required
                       value={formStock}
                       onChange={(e) => setFormStock(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
@@ -703,6 +921,7 @@ export default function InventoryPage() {
                       onChange={(e) => setFormThreshold(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Trigger restock alert below this</span>
                   </div>
                 </div>
               )}
@@ -721,19 +940,6 @@ export default function InventoryPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="isServiceCheck"
-                  checked={formIsService}
-                  onChange={(e) => setFormIsService(e.target.checked)}
-                  className="w-4 h-4 rounded text-blue-600"
-                />
-                <label htmlFor="isServiceCheck" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  This is a Service / Custom Work item (no physical stock decrement)
-                </label>
               </div>
 
               <div className="pt-3 flex justify-end gap-2">

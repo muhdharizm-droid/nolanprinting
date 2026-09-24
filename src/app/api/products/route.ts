@@ -11,12 +11,25 @@ export async function GET(req: NextRequest) {
     const categoryId = searchParams.get("category");
     const status = searchParams.get("status") || "active";
     const lowStock = searchParams.get("low_stock") === "true";
+    const excludeRaw = searchParams.get("exclude_raw") === "true" || searchParams.get("for") === "pos";
+    const itemType = searchParams.get("type"); // "retail" | "raw_material" | "service" | "all"
 
     // Build filter query
     const where: any = {};
 
     if (status !== "all") {
       where.status = status as "active" | "archived";
+    }
+
+    if (excludeRaw) {
+      where.isRawMaterial = false;
+    } else if (itemType === "raw_material" || itemType === "supply") {
+      where.isRawMaterial = true;
+    } else if (itemType === "retail") {
+      where.isRawMaterial = false;
+      where.isService = false;
+    } else if (itemType === "service") {
+      where.isService = true;
     }
 
     if (categoryId && categoryId !== "all") {
@@ -59,10 +72,14 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
 
     const data = await req.json();
-    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService } = data;
+    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService, isRawMaterial } = data;
 
-    if (!name || price === undefined) {
-      return NextResponse.json({ success: false, message: "Product name and price are required" }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ success: false, message: "Product name is required" }, { status: 400 });
+    }
+
+    if (!isRawMaterial && price === undefined) {
+      return NextResponse.json({ success: false, message: "Selling price is required for sellable products" }, { status: 400 });
     }
 
     if (barcode) {
@@ -76,13 +93,14 @@ export async function POST(req: NextRequest) {
       data: {
         barcode: barcode || null,
         name,
-        price: parseFloat(price),
+        price: parseFloat(price || 0),
         costPrice: parseFloat(costPrice || 0),
         stock: parseInt(stock || 0, 10),
         threshold: parseInt(threshold || 10, 10),
         categoryId: categoryId ? parseInt(categoryId, 10) : null,
         supplierId: supplierId ? parseInt(supplierId, 10) : null,
-        isService: !!isService,
+        isService: isRawMaterial ? false : !!isService,
+        isRawMaterial: !!isRawMaterial,
         status: "active",
       },
     });

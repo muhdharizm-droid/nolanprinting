@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     // Standard edit
-    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService } = data;
+    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService, isRawMaterial } = data;
 
     if (barcode) {
       const existing = await db.product.findFirst({
@@ -77,13 +77,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       data: {
         barcode: barcode || null,
         name,
-        price: parseFloat(price),
+        price: parseFloat(price || 0),
         costPrice: parseFloat(costPrice || 0),
         stock: parseInt(stock, 10),
         threshold: parseInt(threshold || 10, 10),
         categoryId: categoryId ? parseInt(categoryId, 10) : null,
         supplierId: supplierId ? parseInt(supplierId, 10) : null,
-        isService: !!isService,
+        isService: isRawMaterial ? false : !!isService,
+        isRawMaterial: !!isRawMaterial,
       },
     });
 

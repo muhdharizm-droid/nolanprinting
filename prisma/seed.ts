@@ -148,16 +148,17 @@ async function main() {
 
   await prisma.product.upsert({
     where: { barcode: "222222" },
-    update: {},
+    update: { isRawMaterial: true },
     create: {
       barcode: "222222",
       name: "A4 Paper Ream (80gsm Double A)",
-      price: 15.00,
+      price: 0.00,
       costPrice: 11.50,
       stock: 45,
       threshold: 15,
       categoryId: catPaper.id,
       isService: false,
+      isRawMaterial: true,
     },
   });
 

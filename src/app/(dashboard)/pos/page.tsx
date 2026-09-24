@@ -35,6 +35,7 @@ interface Product {
   categoryId: number | null;
   category?: { id: number; name: string } | null;
   isService: boolean;
+  isRawMaterial?: boolean;
 }
 
 interface CartItem {
@@ -128,7 +129,7 @@ export default function PosPage() {
   const loadData = async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch("/api/products?status=active"),
+        fetch("/api/products?status=active&exclude_raw=true"),
         fetch("/api/categories"),
       ]);
       const prodData = await prodRes.json();
@@ -144,8 +145,9 @@ export default function PosPage() {
     loadData();
   }, []);
 
-  // Filter catalog
+  // Filter catalog (exclude raw materials / internal supplies)
   const filteredProducts = products.filter((p) => {
+    if (p.isRawMaterial) return false;
     const matchCat =
       selectedCategory === "all" ||
       (p.categoryId && p.categoryId.toString() === selectedCategory);
@@ -218,6 +220,11 @@ export default function PosPage() {
     );
 
     if (matched) {
+      if (matched.isRawMaterial) {
+        alert(`"${matched.name}" is an internal printing supply/paper stock and cannot be rung up directly at POS.`);
+        setBarcodeInput("");
+        return;
+      }
       handleProductSelection(matched);
       setBarcodeInput("");
     } else {
