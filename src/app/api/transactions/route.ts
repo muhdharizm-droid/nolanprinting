@@ -6,6 +6,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "owner") {
+      return NextResponse.json(
+        { success: false, message: "Forbidden: Only Store Owner can access transaction history.", sales: [] },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
@@ -47,6 +58,12 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    if (user.role !== "owner") {
+      return NextResponse.json(
+        { success: false, message: "Forbidden: Only Store Owner can void transactions." },
+        { status: 403 }
+      );
+    }
 
     const { saleId } = await req.json();
     const id = parseInt(saleId, 10);

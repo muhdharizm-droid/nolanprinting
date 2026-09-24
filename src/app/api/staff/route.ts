@@ -4,14 +4,17 @@ import { getCurrentUser, hashPassword } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.role === "owner") {
+    const { searchParams } = new URL(req.url);
+    const selfOnly = searchParams.get("self") === "true";
+
+    if (user.role === "owner" && !selfOnly) {
       // Admin sees complete staff roster
       const staffList = await db.user.findMany({
         select: {
@@ -31,7 +34,7 @@ export async function GET() {
 
       return NextResponse.json({ success: true, staff: staffList, isSelfOnly: false });
     } else {
-      // Cashier and Stock Manager can only access their personal profile details
+      // Self profile details (for cashier, stock_handler, or owner accessing own profile)
       const self = await db.user.findUnique({
         where: { id: user.id },
         select: {

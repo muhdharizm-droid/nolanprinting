@@ -20,6 +20,8 @@ import {
   Calendar,
   CheckCircle2,
   DollarSign,
+  User,
+  Shield,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { formatMYR, formatDate } from "@/lib/utils";
@@ -58,30 +60,51 @@ export default function HomePage() {
 
     async function loadHome() {
       try {
-        const [meRes, repRes, txRes] = await Promise.all([
-          fetch("/api/auth/me"),
-          fetch("/api/reports"),
-          fetch("/api/transactions?status=completed"),
-        ]);
+        const meRes = await fetch("/api/auth/me");
         const meData = await meRes.json();
-        const repData = await repRes.json();
-        const txData = await txRes.json();
+        const currentUser = meData.user || null;
 
-        // Calculate today's stats from transactions
+        let allSales: any[] = [];
+        let totalActiveProducts = 0;
+        let lowStockCount = 0;
+
+        if (currentUser?.role === "owner") {
+          const [repRes, txRes] = await Promise.all([
+            fetch("/api/reports"),
+            fetch("/api/transactions?status=completed"),
+          ]);
+          if (repRes.ok) {
+            const repData = await repRes.json();
+            totalActiveProducts = repData.summary?.totalActiveProducts || 0;
+            lowStockCount = repData.summary?.lowStockCount || 0;
+          }
+          if (txRes.ok) {
+            const txData = await txRes.json();
+            allSales = txData.sales || [];
+          }
+        } else if (currentUser?.role === "stock_handler") {
+          const repRes = await fetch("/api/reports");
+          if (repRes.ok) {
+            const repData = await repRes.json();
+            totalActiveProducts = repData.summary?.totalActiveProducts || 0;
+            lowStockCount = repData.summary?.lowStockCount || 0;
+          }
+        }
+
+        // Calculate today's stats from transactions (for owner)
         const todayStr = new Date().toISOString().split("T")[0];
-        const allSales = txData.sales || [];
         const todaySales = allSales.filter((s: any) =>
           new Date(s.createdAt).toISOString().startsWith(todayStr)
         );
         const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + Number(s.total), 0);
 
         setData({
-          user: meData.user || null,
+          user: currentUser,
           stats: {
             todaySalesCount: todaySales.length,
             todayRevenue,
-            totalProducts: repData.summary?.totalActiveProducts || 0,
-            lowStockCount: repData.summary?.lowStockCount || 0,
+            totalProducts: totalActiveProducts,
+            lowStockCount: lowStockCount,
           },
           recentSales: allSales.slice(0, 5),
         });
@@ -117,7 +140,7 @@ export default function HomePage() {
       href: "/inventory",
       icon: Boxes,
       color: "from-emerald-600 to-teal-600",
-      roles: ["owner", "cashier", "stock_handler"],
+      roles: ["owner", "stock_handler"],
       badge: data?.stats.lowStockCount ? `${data.stats.lowStockCount} Low` : undefined,
       badgeColor: "bg-amber-100 text-amber-800",
     },
@@ -127,7 +150,7 @@ export default function HomePage() {
       href: "/transactions",
       icon: Receipt,
       color: "from-cyan-600 to-blue-700",
-      roles: ["owner", "cashier"],
+      roles: ["owner"],
     },
     {
       title: "Financial Dashboard",
@@ -168,6 +191,14 @@ export default function HomePage() {
       icon: Settings,
       color: "from-slate-700 to-slate-900",
       roles: ["owner"],
+    },
+    {
+      title: "My Profile",
+      desc: "View personal details, employee credentials, and change password",
+      href: "/profile",
+      icon: User,
+      color: "from-indigo-600 to-violet-700",
+      roles: ["owner", "cashier", "stock_handler"],
     },
   ];
 
@@ -220,82 +251,195 @@ export default function HomePage() {
                 <span>Open POS Register</span>
               </Link>
             )}
-            <Link
-              href="/inventory"
-              className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm font-semibold rounded-2xl backdrop-blur-md border border-white/10 transition"
-            >
-              <Boxes className="w-4 h-4" />
-              <span>Inventory</span>
-            </Link>
+            {data?.user?.role !== "cashier" ? (
+              <Link
+                href="/inventory"
+                className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm font-semibold rounded-2xl backdrop-blur-md border border-white/10 transition"
+              >
+                <Boxes className="w-4 h-4" />
+                <span>Inventory</span>
+              </Link>
+            ) : (
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm font-semibold rounded-2xl backdrop-blur-md border border-white/10 transition"
+              >
+                <User className="w-4 h-4" />
+                <span>My Profile</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
       {/* Quick Overview Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Today's Sales Count */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Today's Transactions</span>
-            <ShoppingCart className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {data?.stats.todaySalesCount ?? 0}
-          </div>
-          <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-            Completed today
-          </span>
-        </div>
+      {data?.user?.role === "cashier" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/pos"
+            className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-blue-500 group"
+          >
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">POS Terminal</span>
+              <ShoppingCart className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="text-2xl font-black text-blue-600">
+              Active Register
+            </div>
+            <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
+              Ready for customer checkout &rarr;
+            </span>
+          </Link>
 
-        {/* Today's Revenue */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Today's Revenue</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+          <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Role & Shift</span>
+              <Shield className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white capitalize">
+              Cashier
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium mt-1 block">
+              Session active (@{data?.user?.username})
+            </span>
           </div>
-          <div className="text-2xl font-black text-emerald-600">
-            {formatMYR(data?.stats.todayRevenue ?? 0)}
-          </div>
-          <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-            Direct receipts
-          </span>
-        </div>
 
-        {/* Total Products */}
-        <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Active Products</span>
-            <Boxes className="w-4 h-4 text-indigo-600" />
-          </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {data?.stats.totalProducts ?? 0}
-          </div>
-          <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-            Catalog inventory
-          </span>
+          <Link
+            href="/profile"
+            className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-violet-500 group"
+          >
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">My Profile</span>
+              <User className="w-4 h-4 text-violet-600 group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              {data?.user?.fullName?.split(" ")[0] || "Profile"}
+            </div>
+            <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold mt-1 block">
+              View & edit personal details &rarr;
+            </span>
+          </Link>
         </div>
+      ) : data?.user?.role === "stock_handler" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/inventory"
+            className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-emerald-500 group"
+          >
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Active Products</span>
+              <Boxes className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              {data?.stats.totalProducts ?? 0}
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium mt-1 block">
+              Catalog inventory items &rarr;
+            </span>
+          </Link>
 
-        {/* Low Stock Alerts */}
-        <Link
-          href="/inventory"
-          className={`p-5 rounded-2xl border transition block ${
-            data?.stats.lowStockCount
-              ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
-              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Stock Alerts</span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <Link
+            href="/inventory"
+            className={`p-5 rounded-2xl border transition block ${
+              data?.stats.lowStockCount
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Stock Alerts</span>
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="text-2xl font-black text-amber-600">
+              {data?.stats.lowStockCount ?? 0} items
+            </div>
+            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-1 block">
+              {data?.stats.lowStockCount ? "Needs restock" : "All healthy"}
+            </span>
+          </Link>
+
+          <Link
+            href="/profile"
+            className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-violet-500 group"
+          >
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">My Profile</span>
+              <User className="w-4 h-4 text-violet-600 group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              {data?.user?.fullName?.split(" ")[0] || "Profile"}
+            </div>
+            <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold mt-1 block">
+              View & edit personal details &rarr;
+            </span>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Today's Sales Count */}
+          <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Today's Transactions</span>
+              <ShoppingCart className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              {data?.stats.todaySalesCount ?? 0}
+            </div>
+            <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
+              Completed today
+            </span>
           </div>
-          <div className="text-2xl font-black text-amber-600">
-            {data?.stats.lowStockCount ?? 0} items
+
+          {/* Today's Revenue */}
+          <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Today's Revenue</span>
+              <DollarSign className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div className="text-2xl font-black text-emerald-600">
+              {formatMYR(data?.stats.todayRevenue ?? 0)}
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium mt-1 block">
+              Direct receipts
+            </span>
           </div>
-          <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-1 block">
-            {data?.stats.lowStockCount ? "Needs restock" : "All healthy"}
-          </span>
-        </Link>
-      </div>
+
+          {/* Total Products */}
+          <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Active Products</span>
+              <Boxes className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              {data?.stats.totalProducts ?? 0}
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium mt-1 block">
+              Catalog inventory
+            </span>
+          </div>
+
+          {/* Low Stock Alerts */}
+          <Link
+            href="/inventory"
+            className={`p-5 rounded-2xl border transition block ${
+              data?.stats.lowStockCount
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Stock Alerts</span>
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="text-2xl font-black text-amber-600">
+              {data?.stats.lowStockCount ?? 0} items
+            </div>
+            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-1 block">
+              {data?.stats.lowStockCount ? "Needs restock" : "All healthy"}
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Quick Launch Department Grid */}
       <div>
@@ -353,8 +497,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Recent Activity Table */}
-      {data?.recentSales && data.recentSales.length > 0 && (
+      {/* Recent Activity Table (Store Owner Only) */}
+      {data?.user?.role === "owner" && data?.recentSales && data.recentSales.length > 0 && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>

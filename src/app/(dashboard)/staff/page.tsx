@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Plus,
@@ -58,11 +59,11 @@ const roleStyles: Record<string, { badge: string; label: string; icon: string }>
 
 export default function StaffPage() {
   const { t } = useI18n();
+  const router = useRouter();
 
   const [staffList, setStaffList] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isSelfOnly, setIsSelfOnly] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
 
@@ -102,22 +103,10 @@ export default function StaffPage() {
   const [deletingStaff, setDeletingStaff] = useState<StaffUser | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Self Profile Form (for Cashier & Stock Handler)
-  const [selfFullName, setSelfFullName] = useState("");
-  const [selfPhone, setSelfPhone] = useState("");
-  const [selfGender, setSelfGender] = useState("Male");
-  const [selfRace, setSelfRace] = useState("Malay");
-  const [selfAddress, setSelfAddress] = useState("");
-  const [selfPassword, setSelfPassword] = useState("");
-  const [selfMsg, setSelfMsg] = useState("");
-  const [selfError, setSelfError] = useState("");
-  const [selfSaving, setSelfSaving] = useState(false);
-
   // Global Notification & Password Toggles
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
-  const [showSelfPassword, setShowSelfPassword] = useState(false);
 
   const fetchStaffData = async () => {
     setLoading(true);
@@ -130,22 +119,15 @@ export default function StaffPage() {
       const staffData = await staffRes.json();
 
       if (meData.user) {
+        if (meData.user.role !== "owner") {
+          router.push("/profile");
+          return;
+        }
         setCurrentUser(meData.user);
       }
 
       if (staffData.success) {
         setStaffList(staffData.staff || []);
-        setIsSelfOnly(Boolean(staffData.isSelfOnly));
-
-        // If self only, populate self form
-        if (staffData.isSelfOnly && staffData.staff?.length > 0) {
-          const self = staffData.staff[0];
-          setSelfFullName(self.fullName || "");
-          setSelfPhone(self.phoneNumber || "");
-          setSelfGender(self.gender || "Male");
-          setSelfRace(self.race || "Malay");
-          setSelfAddress(self.address || "");
-        }
       }
     } catch (e) {
       console.error(e);
@@ -158,7 +140,7 @@ export default function StaffPage() {
     fetchStaffData();
   }, []);
 
-  const isAdmin = currentUser?.role === "owner" && !isSelfOnly;
+  const isAdmin = currentUser?.role === "owner";
 
   // Filter staff list
   const filteredStaff = staffList.filter((s) => {
@@ -324,51 +306,7 @@ export default function StaffPage() {
     }
   };
 
-  // Handle Cashier/Stock Handler Self Update
-  const handleSelfUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSelfError("");
-    setSelfMsg("");
-    setSelfSaving(true);
 
-    try {
-      const payload: any = {
-        fullName: selfFullName,
-        phoneNumber: selfPhone,
-        gender: selfGender,
-        race: selfRace,
-        address: selfAddress,
-      };
-      if (selfPassword.trim()) {
-        if (selfPassword.trim().length < 4) {
-          setSelfError("New password must be at least 4 characters long.");
-          setSelfSaving(false);
-          return;
-        }
-        payload.password = selfPassword.trim();
-      }
-
-      const res = await fetch("/api/staff", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to save profile changes.");
-      }
-
-      setSelfMsg(data.message || "Your profile details have been updated successfully!");
-      setSelfPassword("");
-      setShowSelfPassword(false);
-      setTimeout(() => setSelfMsg(""), 5000);
-      fetchStaffData();
-    } catch (err: any) {
-      setSelfError(err.message);
-    } finally {
-      setSelfSaving(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -380,25 +318,21 @@ export default function StaffPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">
-              {isAdmin ? t("staff") : "Staff Management - My Profile"}
+              {t("staff")}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isAdmin
-                ? "Admin: View staff roster and registration details, create accounts, and manage permissions"
-                : "Personal Staff Profile: View and edit your registered personal and contact details"}
+              Admin: View staff roster and registration details, create accounts, and manage permissions
             </p>
           </div>
         </div>
 
-        {isAdmin && (
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add New Staff</span>
-          </button>
-        )}
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Staff</span>
+        </button>
       </div>
 
       {/* Global Success Notification */}
@@ -409,170 +343,8 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* VIEW FOR NON-ADMIN (Cashier / Stock Manager): View & Edit Own Personal Details */}
-      {!isAdmin && (
-        <div className="max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-6 transition-colors">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold rounded-2xl flex items-center justify-center text-lg">
-                {currentUser?.fullName?.[0]?.toUpperCase() || "U"}
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-800 dark:text-white">
-                  {currentUser?.fullName}
-                </h2>
-                <p className="text-xs text-slate-400 font-mono">@{currentUser?.username}</p>
-              </div>
-            </div>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-bold capitalize border ${
-                roleStyles[currentUser?.role]?.badge || "bg-slate-100"
-              }`}
-            >
-              {roleStyles[currentUser?.role]?.label || currentUser?.role}
-            </span>
-          </div>
-
-          {selfMsg && (
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>{selfMsg}</span>
-            </div>
-          )}
-
-          {selfError && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600" />
-              <span>{selfError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSelfUpdate} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Username (System ID - Locked)</span>
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={currentUser?.username || ""}
-                  className="w-full p-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-slate-500 cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Full Legal Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={selfFullName}
-                  onChange={(e) => setSelfFullName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 012-3456789"
-                  value={selfPhone}
-                  onChange={(e) => setSelfPhone(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Gender
-                </label>
-                <select
-                  value={selfGender}
-                  onChange={(e) => setSelfGender(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Race / Ethnicity
-                </label>
-                <select
-                  value={selfRace}
-                  onChange={(e) => setSelfRace(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="Malay">Malay</option>
-                  <option value="Chinese">Chinese</option>
-                  <option value="Indian">Indian</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Residential Address
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Enter residential address..."
-                value={selfAddress}
-                onChange={(e) => setSelfAddress(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Change Password (Leave blank to keep current)
-              </label>
-              <div className="relative">
-                <input
-                  type={showSelfPassword ? "text" : "password"}
-                  placeholder="Enter new password (min 4 characters)"
-                  value={selfPassword}
-                  onChange={(e) => setSelfPassword(e.target.value)}
-                  className="w-full p-2.5 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSelfPassword(!showSelfPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showSelfPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={selfSaving}
-                className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold transition shadow-md shadow-blue-600/20 disabled:opacity-50"
-              >
-                {selfSaving ? "Saving Changes..." : "Save My Profile Details"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* VIEW FOR ADMIN: Staff Roster with Full Registration Details */}
-      {isAdmin && (
-        <div className="space-y-4">
+      {/* Staff Roster with Full Registration Details */}
+      <div className="space-y-4">
           {/* Controls: Search and Filter */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
             <div className="relative flex-1 min-w-[240px]">
@@ -708,7 +480,6 @@ export default function StaffPage() {
             </div>
           )}
         </div>
-      )}
 
       {/* MODAL 1: Admin View Registration Dossier Details */}
       {viewModalOpen && viewStaff && (

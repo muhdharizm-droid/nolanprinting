@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Receipt,
   Search,
@@ -38,6 +39,7 @@ interface Sale {
 
 export default function TransactionsPage() {
   const { t } = useI18n();
+  const router = useRouter();
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,10 @@ export default function TransactionsPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/transactions?search=${search}&status=${statusFilter}`);
+      if (res.status === 403) {
+        router.push("/home");
+        return;
+      }
       const data = await res.json();
       if (data.success) setSales(data.sales);
     } catch (e) {

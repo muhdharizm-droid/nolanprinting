@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Boxes,
   Plus,
@@ -44,6 +45,7 @@ interface Product {
 
 export default function InventoryPage() {
   const { t } = useI18n();
+  const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -86,11 +88,17 @@ export default function InventoryPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [pRes, cRes, sRes] = await Promise.all([
+      const [meRes, pRes, cRes, sRes] = await Promise.all([
+        fetch("/api/auth/me"),
         fetch("/api/products?status=all"),
         fetch("/api/categories"),
         fetch("/api/suppliers"),
       ]);
+      const meData = await meRes.json();
+      if (meData.user?.role === "cashier") {
+        router.push("/home");
+        return;
+      }
       const pData = await pRes.json();
       const cData = await cRes.json();
       const sData = await sRes.json();

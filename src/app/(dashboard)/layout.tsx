@@ -14,6 +14,7 @@ import {
   WalletCards,
   Truck,
   Users,
+  User,
   BarChart3,
   ScrollText,
   Settings,
@@ -81,6 +82,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     checkAuth();
   }, [router]);
 
+  // Role-based Route Guard
+  useEffect(() => {
+    if (!user || loading) return;
+
+    if (user.role === "cashier") {
+      const allowedCashier = ["/home", "/pos", "/profile"];
+      const isAllowed = allowedCashier.some(
+        (r) => pathname === r || pathname.startsWith(r + "/")
+      );
+      if (!isAllowed) {
+        router.push("/home");
+      }
+    } else if (user.role === "stock_handler") {
+      const allowedStock = ["/home", "/inventory", "/categories", "/suppliers", "/profile"];
+      const isAllowed = allowedStock.some(
+        (r) => pathname === r || pathname.startsWith(r + "/")
+      );
+      if (!isAllowed) {
+        router.push("/home");
+      }
+    }
+  }, [user, loading, pathname, router]);
+
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
@@ -100,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Categorized Navigation Sections (Matching Legacy Architecture)
+  // Categorized Navigation Sections (Role-Restricted)
   const navCategories: NavCategory[] = [
     {
       titleEn: "MAIN MENU",
@@ -128,7 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           label: t("inventory"),
           href: "/inventory",
           icon: Boxes,
-          roles: ["owner", "cashier", "stock_handler"],
+          roles: ["owner", "stock_handler"],
         },
         {
           label: t("manage_categories"),
@@ -164,7 +188,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           label: t("transactions"),
           href: "/transactions",
           icon: Receipt,
-          roles: ["owner", "cashier"],
+          roles: ["owner"],
         },
         {
           label: t("expenses"),
@@ -182,7 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           label: t("staff"),
           href: "/staff",
           icon: Users,
-          roles: ["owner", "cashier", "stock_handler"],
+          roles: ["owner"],
         },
         {
           label: t("audit_log"),
@@ -195,6 +219,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           href: "/settings",
           icon: Settings,
           roles: ["owner"],
+        },
+      ],
+    },
+    {
+      titleEn: "ACCOUNT",
+      titleMs: "AKAUN",
+      items: [
+        {
+          label: t("profile"),
+          href: "/profile",
+          icon: User,
+          roles: ["owner", "cashier", "stock_handler"],
         },
       ],
     },
