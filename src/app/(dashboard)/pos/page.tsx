@@ -47,6 +47,7 @@ interface CartItem {
   isService: boolean;
   details?: string | null;
   stock?: number;
+  consumables?: Array<{ barcode: string; quantity: number; name?: string }>;
 }
 
 type PaperSize = "A4" | "A3" | "A5" | "B5";
@@ -277,6 +278,41 @@ export default function PosPage() {
     const sideLabel = calcSides === "single" ? "1-Sided" : "2-Sided (Duplex)";
     const colorLabel = calcColorMode === "bw" ? "B&W" : "Full Color";
 
+    const sheetsPerCopy = calcSides === "double" ? Math.ceil(calcPages / 2) : calcPages;
+    const totalSheets = sheetsPerCopy * calcCopies;
+
+    let paperBarcode = "RAW-A4-70G";
+    if (calcPaperSize === "A3") {
+      paperBarcode = calcMaterialId === "artcard-260" ? "RAW-A3-260G" : "RAW-A3-70G";
+    } else {
+      if (calcMaterialId === "premium-80") paperBarcode = "RAW-A4-80G";
+      else if (calcMaterialId === "artcard-260") paperBarcode = "RAW-A3-260G";
+      else if (calcMaterialId === "sticker") paperBarcode = "RAW-STK-A4";
+      else paperBarcode = "RAW-A4-70G";
+    }
+
+    const consumables: Array<{ barcode: string; quantity: number; name: string }> = [
+      {
+        barcode: paperBarcode,
+        quantity: totalSheets,
+        name: material.name.replace(/ \(\+RM.*\)/, ""),
+      },
+    ];
+
+    if (calcFinishingId === "comb") {
+      consumables.push({
+        barcode: "RAW-COMB-12",
+        quantity: calcCopies,
+        name: "Plastic Comb Spine",
+      });
+    } else if (calcFinishingId === "laminate") {
+      consumables.push({
+        barcode: "RAW-LAM-A4",
+        quantity: totalSheets,
+        name: "Laminating Film Pouch",
+      });
+    }
+
     const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${material.name.replace(
       / \(\+RM.*\)/,
       ""
@@ -294,6 +330,7 @@ export default function PosPage() {
         quantity: 1,
         isService: true,
         details,
+        consumables,
       },
     ]);
 
@@ -379,6 +416,7 @@ export default function PosPage() {
             isService: i.isService,
             serviceProductId: i.productId,
             details: i.details,
+            consumables: i.consumables,
           })),
           discountAmount,
           taxRate,
@@ -914,6 +952,13 @@ export default function PosPage() {
                     <strong className="text-blue-700 dark:text-blue-400">
                       RM {computeEffectivePageRate().toFixed(2)}
                     </strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>
+                    Auto-consumes: <strong>{(calcSides === "double" ? Math.ceil(calcPages / 2) : calcPages) * calcCopies} sheet{((calcSides === "double" ? Math.ceil(calcPages / 2) : calcPages) * calcCopies) > 1 ? "s" : ""}</strong> of {getSelectedMaterial().name.replace(/ \(\+RM.*\)/, "")}
+                    {getSelectedFinishing().id !== "none" ? ` + ${getSelectedFinishing().name.replace(/ \(\+RM.*\)/, "")}` : ""}
                   </span>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-blue-200/60 dark:border-blue-900/40">

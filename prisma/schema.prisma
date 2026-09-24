@@ -40,6 +40,7 @@ model User {
 
   sales            Sale[]
   stockIntakes     StockIntake[]
+  stockUsages      StockUsage[]
   expenses         Expense[]
   activityLogs     ActivityLog[]
 
@@ -80,13 +81,16 @@ model Product {
   status      ProductStatus @default(active)
   isService     Boolean       @default(false) @map("is_service")
   isRawMaterial Boolean       @default(false) @map("is_raw_material")
+  packSize      Int           @default(1) @map("pack_size")
+  looseStock    Int           @default(0) @map("loose_stock")
   createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  category    Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  supplier    Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  saleItems   SaleItem[]
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  saleItems    SaleItem[]
   stockIntakes StockIntake[]
+  stockUsages  StockUsage[]
 
   @@map("products")
 }
@@ -134,6 +138,22 @@ model StockIntake {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("stock_intake")
+}
+
+model StockUsage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  quantity  Int
+  unitType  String   @default("package") @map("unit_type")
+  reason    String
+  notes     String?  @db.Text
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("stock_usages")
 }
 
 model Expense {

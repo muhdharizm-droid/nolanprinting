@@ -39,11 +39,71 @@ export async function POST(req: NextRequest) {
           const unitPrice = parseFloat(item.price);
           subtotalCalc += unitPrice * qty;
 
+          let serviceMaterialCost = 0;
+
+          if (item.consumables && Array.isArray(item.consumables)) {
+            for (const cons of item.consumables) {
+              const sheetsNeeded = Math.max(1, parseInt(cons.quantity, 10)) * qty;
+
+              // Find raw material product by barcode or id
+              const rawProduct = await tx.product.findFirst({
+                where: cons.productId
+                  ? { id: parseInt(cons.productId, 10) }
+                  : { barcode: cons.barcode },
+              });
+
+              if (rawProduct) {
+                const packCapacity = rawProduct.packSize || 1;
+                let curStock = rawProduct.stock;
+                let curLoose = rawProduct.looseStock;
+
+                if (curLoose >= sheetsNeeded) {
+                  curLoose -= sheetsNeeded;
+                } else {
+                  const neededFromPacks = sheetsNeeded - curLoose;
+                  const packsToOpen = Math.ceil(neededFromPacks / packCapacity);
+
+                  if (curStock >= packsToOpen) {
+                    curStock -= packsToOpen;
+                    curLoose = (curLoose + packsToOpen * packCapacity) - sheetsNeeded;
+                  } else {
+                    curLoose = Math.max(0, (curLoose + curStock * packCapacity) - sheetsNeeded);
+                    curStock = 0;
+                  }
+                }
+
+                await tx.product.update({
+                  where: { id: rawProduct.id },
+                  data: {
+                    stock: curStock,
+                    looseStock: curLoose,
+                  },
+                });
+
+                const unitCost = Number(rawProduct.costPrice) / packCapacity;
+                serviceMaterialCost += unitCost * sheetsNeeded;
+
+                await tx.stockUsage.create({
+                  data: {
+                    productId: rawProduct.id,
+                    quantity: sheetsNeeded,
+                    unitType: "loose",
+                    reason: "POS Customer Printing Order",
+                    notes: `Auto-deducted for ${item.name} (${item.details || ""})`,
+                    userId: user.id,
+                  },
+                });
+              }
+            }
+          }
+
+          const unitMaterialCost = Math.round((serviceMaterialCost / qty) * 100) / 100;
+
           itemsToProcess.push({
             productId: parseInt(item.serviceProductId || item.id, 10),
             quantity: qty,
             priceAtSale: unitPrice,
-            costAtSale: 0.0,
+            costAtSale: unitMaterialCost,
             details: item.details || "Custom Print Service",
             isService: true,
           });

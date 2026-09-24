@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
 
     const data = await req.json();
-    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService, isRawMaterial } = data;
+    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService, isRawMaterial, packSize, looseStock } = data;
 
     if (!name) {
       return NextResponse.json({ success: false, message: "Product name is required" }, { status: 400 });
@@ -101,6 +101,8 @@ export async function POST(req: NextRequest) {
         supplierId: supplierId ? parseInt(supplierId, 10) : null,
         isService: isRawMaterial ? false : !!isService,
         isRawMaterial: !!isRawMaterial,
+        packSize: parseInt(packSize || 1, 10) || 1,
+        looseStock: parseInt(looseStock || 0, 10) || 0,
         status: "active",
       },
     });

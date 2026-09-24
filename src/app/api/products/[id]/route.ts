@@ -43,6 +43,97 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ success: true, product: updated });
     }
 
+    if (data.action === "usage") {
+      const qty = parseInt(data.quantity, 10);
+      const unitType = data.unitType === "loose" ? "loose" : "package";
+      const reason = data.reason || "Internal Shop Use";
+      const notes = data.notes || null;
+
+      if (isNaN(qty) || qty <= 0) {
+        return NextResponse.json({ success: false, message: "Invalid usage quantity" }, { status: 400 });
+      }
+
+      const product = await db.product.findUnique({ where: { id } });
+      if (!product) {
+        return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
+      }
+
+      let newStock = product.stock;
+      let newLooseStock = product.looseStock;
+      const packCapacity = product.packSize || 1;
+
+      if (unitType === "package") {
+        if (product.stock < qty) {
+          return NextResponse.json({
+            success: false,
+            message: `Insufficient stock on shelf. Available: ${product.stock} package(s).`,
+          }, { status: 400 });
+        }
+
+        // If loading into copier tray / machine, open the ream and add loose sheets
+        const isTrayLoad = reason.toLowerCase().includes("machine") ||
+                           reason.toLowerCase().includes("printer") ||
+                           reason.toLowerCase().includes("tray") ||
+                           reason.toLowerCase().includes("dulang") ||
+                           reason.toLowerCase().includes("load");
+
+        if (isTrayLoad) {
+          newStock -= qty;
+          newLooseStock += qty * packCapacity;
+        } else {
+          // Discarded / damaged / consumed entire package
+          newStock -= qty;
+        }
+      } else {
+        // unitType === "loose" (sheets / pieces)
+        if (newLooseStock >= qty) {
+          newLooseStock -= qty;
+        } else {
+          const neededFromPacks = qty - newLooseStock;
+          const packsToOpen = Math.ceil(neededFromPacks / packCapacity);
+
+          if (newStock < packsToOpen) {
+            return NextResponse.json({
+              success: false,
+              message: `Insufficient stock. Required: ${qty} units. You currently have ${newLooseStock} loose units and ${newStock} package(s) on shelf.`,
+            }, { status: 400 });
+          }
+
+          newStock -= packsToOpen;
+          newLooseStock = (newLooseStock + packsToOpen * packCapacity) - qty;
+        }
+      }
+
+      const updated = await db.product.update({
+        where: { id },
+        data: {
+          stock: newStock,
+          looseStock: newLooseStock,
+        },
+      });
+
+      await db.stockUsage.create({
+        data: {
+          productId: id,
+          quantity: qty,
+          unitType,
+          reason,
+          notes,
+          userId: user.id,
+        },
+      });
+
+      await db.activityLog.create({
+        data: {
+          userId: user.id,
+          action: "Stock Usage Recorded",
+          details: `Used ${qty} ${unitType === "package" ? "package(s)" : "loose unit(s)"} for '${updated.name}' (Reason: ${reason}). Remaining: ${updated.stock} on shelf, ${updated.looseStock} loose in tray.`,
+        },
+      });
+
+      return NextResponse.json({ success: true, product: updated });
+    }
+
     if (data.action === "restore") {
       const updated = await db.product.update({
         where: { id },
@@ -61,7 +152,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     // Standard edit
-    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService, isRawMaterial } = data;
+    const { barcode, name, price, costPrice, stock, threshold, categoryId, supplierId, isService, isRawMaterial, packSize, looseStock } = data;
 
     if (barcode) {
       const existing = await db.product.findFirst({
@@ -85,6 +176,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         supplierId: supplierId ? parseInt(supplierId, 10) : null,
         isService: isRawMaterial ? false : !!isService,
         isRawMaterial: !!isRawMaterial,
+        packSize: parseInt(packSize || 1, 10) || 1,
+        looseStock: parseInt(looseStock || 0, 10) || 0,
       },
     });
 

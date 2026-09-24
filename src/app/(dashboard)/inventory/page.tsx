@@ -20,6 +20,10 @@ import {
   Printer,
   FileText,
   Info,
+  MinusCircle,
+  History,
+  Layers,
+  ClipboardList,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import JsBarcode from "jsbarcode";
@@ -33,6 +37,8 @@ interface Product {
   price: string | number;
   costPrice: string | number;
   stock: number;
+  packSize: number;
+  looseStock: number;
   threshold: number;
   categoryId: number | null;
   supplierId: number | null;
@@ -73,12 +79,28 @@ export default function InventoryPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
 
+  // Stock Usage Modal State
+  const [usageModalOpen, setUsageModalOpen] = useState(false);
+  const [usageProduct, setUsageProduct] = useState<Product | null>(null);
+  const [usageQty, setUsageQty] = useState(1);
+  const [usageUnitType, setUsageUnitType] = useState<"package" | "loose">("package");
+  const [usageReason, setUsageReason] = useState("Loaded to Printer / Copier Tray");
+  const [usageNotes, setUsageNotes] = useState("");
+  const [usageLoading, setUsageLoading] = useState(false);
+
+  // Usage History State
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [usageHistory, setUsageHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   // Form State
   const [formName, setFormName] = useState("");
   const [formBarcode, setFormBarcode] = useState("");
   const [formPrice, setFormPrice] = useState("");
   const [formCostPrice, setFormCostPrice] = useState("");
   const [formStock, setFormStock] = useState("");
+  const [formPackSize, setFormPackSize] = useState("1");
+  const [formLooseStock, setFormLooseStock] = useState("0");
   const [formThreshold, setFormThreshold] = useState("10");
   const [formCategory, setFormCategory] = useState("");
   const [formSupplier, setFormSupplier] = useState("");
@@ -191,6 +213,8 @@ export default function InventoryPage() {
     setFormPrice("");
     setFormCostPrice("0.00");
     setFormStock("0");
+    setFormPackSize("1");
+    setFormLooseStock("0");
     setFormThreshold("10");
     setFormCategory("");
     setFormSupplier("");
@@ -207,6 +231,8 @@ export default function InventoryPage() {
     setFormPrice(p.price.toString());
     setFormCostPrice(p.costPrice.toString());
     setFormStock(p.stock.toString());
+    setFormPackSize((p.packSize || 1).toString());
+    setFormLooseStock((p.looseStock || 0).toString());
     setFormThreshold(p.threshold.toString());
     setFormCategory(p.categoryId ? p.categoryId.toString() : "");
     setFormSupplier(p.supplierId ? p.supplierId.toString() : "");
@@ -241,6 +267,8 @@ export default function InventoryPage() {
       supplierId: formSupplier ? parseInt(formSupplier, 10) : null,
       isService: isSvc,
       isRawMaterial: isRaw,
+      packSize: isRaw ? parseInt(formPackSize || "1", 10) || 1 : 1,
+      looseStock: isRaw ? parseInt(formLooseStock || "0", 10) || 0 : 0,
     };
 
     try {
@@ -270,6 +298,75 @@ export default function InventoryPage() {
       setErrorMsg(e.message || "Save error.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Open Record Stock Usage Modal
+  const openUsageModal = (product?: Product) => {
+    if (product) {
+      setUsageProduct(product);
+    } else {
+      const firstRaw = products.find((p) => p.isRawMaterial && p.status === "active");
+      setUsageProduct(firstRaw || products[0] || null);
+    }
+    setUsageQty(1);
+    setUsageUnitType("package");
+    setUsageReason("Loaded to Printer / Copier Tray");
+    setUsageNotes("");
+    setUsageModalOpen(true);
+  };
+
+  // Submit Stock Usage (Floor Issue / Machine Load)
+  const handleUsageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usageProduct) return;
+    setUsageLoading(true);
+
+    try {
+      const res = await fetch(`/api/products/${usageProduct.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "usage",
+          quantity: usageQty,
+          unitType: usageUnitType,
+          reason: usageReason,
+          notes: usageNotes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to record stock usage.");
+      }
+
+      setUsageModalOpen(false);
+      setToastMsg({
+        text: `Recorded usage of ${usageQty} ${usageUnitType === "package" ? "package(s)" : "loose unit(s)"} for '${usageProduct.name}'.`,
+        type: "success",
+      });
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || "Error recording stock usage");
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  // Open Stock Usage Audit History Modal
+  const openHistoryModal = async () => {
+    setHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/stock-usage");
+      const data = await res.json();
+      if (data.success) {
+        setUsageHistory(data.usages || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch usage history", e);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -365,8 +462,24 @@ export default function InventoryPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={openHistoryModal}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
+          >
+            <History className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            <span>Usage History</span>
+          </button>
+
+          <button
+            onClick={() => openUsageModal()}
+            className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition"
+          >
+            <MinusCircle className="w-4 h-4" />
+            <span>Record Usage</span>
+          </button>
+
+          <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
           >
             <Download className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             <span>{t("export_csv")}</span>
@@ -593,6 +706,29 @@ export default function InventoryPage() {
                       <td className="p-3.5 text-center">
                         {p.isService ? (
                           <span className="text-slate-400 dark:text-slate-500 font-medium">Unlimited</span>
+                        ) : p.isRawMaterial ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
+                                isOut
+                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
+                                  : isLow
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              }`}
+                            >
+                              {p.stock} pkgs / reams
+                            </span>
+                            {p.looseStock > 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                                📄 +{p.looseStock} in tray
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                0 loose in tray
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span
                             className={`px-2.5 py-1 rounded-full font-bold text-[11px] ${
@@ -624,10 +760,19 @@ export default function InventoryPage() {
                                     setIntakeProduct(p);
                                     setIntakeQty(10);
                                   }}
-                                  title="Quick Stock Intake"
+                                  title="Quick Stock Intake (+)"
                                   className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition"
                                 >
                                   <ArrowDownToLine className="w-4 h-4" />
+                                </button>
+                              )}
+                              {p.isRawMaterial && (
+                                <button
+                                  onClick={() => openUsageModal(p)}
+                                  title="Record Usage / Keluar ke Mesin (-)"
+                                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition"
+                                >
+                                  <MinusCircle className="w-4 h-4" />
                                 </button>
                               )}
                               <button
@@ -926,6 +1071,41 @@ export default function InventoryPage() {
                 </div>
               )}
 
+              {/* Raw Material Packaging & Tray Breakdown */}
+              {formItemType === "raw_material" && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Pack Capacity (Sheets/Units) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={formPackSize}
+                      onChange={(e) => setFormPackSize(e.target.value)}
+                      placeholder="e.g. 500 for ream, 100 for pack"
+                      className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">e.g. 500 sheets/ream</span>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Loose Units in Machine Tray
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formLooseStock}
+                      onChange={(e) => setFormLooseStock(e.target.value)}
+                      placeholder="0"
+                      className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Individual sheets loaded in tray</span>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("supplier")}</label>
                 <select
@@ -1100,6 +1280,268 @@ export default function InventoryPage() {
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50"
               >
                 {deleteLoading ? "Deleting..." : "Yes, Delete Product"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Record Stock Usage (Floor Issue / Machine Load) */}
+      {usageModalOpen && usageProduct && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+                  <MinusCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">Record Stock Usage / Floor Issue</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Log supplies loaded to printer or shop consumption</p>
+                </div>
+              </div>
+              <button onClick={() => setUsageModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUsageSubmit} className="p-6 space-y-4 text-xs">
+              {/* Product Selector */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Item / Material *
+                </label>
+                <select
+                  value={usageProduct.id}
+                  onChange={(e) => {
+                    const sel = products.find((p) => p.id === parseInt(e.target.value));
+                    if (sel) setUsageProduct(sel);
+                  }}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none"
+                >
+                  {products
+                    .filter((p) => p.status === "active" && !p.isService)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.isRawMaterial ? "📄 " : "📦 "} {p.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Current Stock Breakdown Badge */}
+              <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">Current Stock on Shelf:</span>
+                  <span className="font-black text-amber-900 dark:text-amber-200">{usageProduct.stock} packages</span>
+                </div>
+                {usageProduct.isRawMaterial && (
+                  <div className="text-right">
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">Loose in Tray:</span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-400">+{usageProduct.looseStock || 0} sheets</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Unit Type Radio */}
+              {usageProduct.isRawMaterial && (
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Usage Unit *
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setUsageUnitType("package")}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
+                        usageUnitType === "package"
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/20"
+                          : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      <span className="font-bold text-xs">Full Package / Ream</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Opens {usageProduct.packSize || 1} units to tray
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUsageUnitType("loose")}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
+                        usageUnitType === "loose"
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/20"
+                          : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      <span className="font-bold text-xs">Individual Loose Units</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Deducts single sheets/pieces
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Quantity to Deduct ({usageUnitType === "package" ? "Package / Ream" : "Loose Sheets"}) *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={usageQty}
+                  onChange={(e) => setUsageQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-lg font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Reason for Usage *
+                </label>
+                <select
+                  value={usageReason}
+                  onChange={(e) => setUsageReason(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
+                >
+                  <option value="Loaded to Printer / Copier Tray">🖨️ Loaded to Printer / Copier Tray</option>
+                  <option value="Paper Jam / Machine Spoilage">⚠️ Paper Jam / Machine Spoilage</option>
+                  <option value="Test Prints / Calibration">🧪 Test Prints / Machine Calibration</option>
+                  <option value="Internal Shop Use">🏢 Internal Shop Use (Invoices, Documents)</option>
+                  <option value="Damaged / Wet Stock">❌ Damaged / Wet Stock (Discarded)</option>
+                </select>
+              </div>
+
+              {/* Optional Notes */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Notes (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={usageNotes}
+                  onChange={(e) => setUsageNotes(e.target.value)}
+                  placeholder="e.g. Fuji Xerox Tray 1 or damaged box"
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUsageModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={usageLoading}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-xl shadow-md shadow-amber-500/20 disabled:opacity-50"
+                >
+                  {usageLoading ? "Recording..." : "Confirm Stock Usage"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: Stock Usage Audit History Modal */}
+      {historyModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center">
+                  <History className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">Stock Usage & Outflow Audit Log</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Real-time log of paper consumption, machine tray loads, and POS orders</p>
+                </div>
+              </div>
+              <button onClick={() => setHistoryModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1 text-xs">
+              {historyLoading ? (
+                <div className="p-10 text-center text-slate-400">Loading audit history...</div>
+              ) : usageHistory.length === 0 ? (
+                <div className="p-10 text-center text-slate-400">No stock usage recorded yet.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="p-3">Time</th>
+                        <th className="p-3">Item / Material</th>
+                        <th className="p-3 text-center">Quantity</th>
+                        <th className="p-3">Reason / Event</th>
+                        <th className="p-3">Logged By</th>
+                        <th className="p-3">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {usageHistory.map((u) => {
+                        const isAuto = u.reason.toLowerCase().includes("pos");
+                        const isLoad = u.reason.toLowerCase().includes("tray") || u.reason.toLowerCase().includes("printer");
+                        const isWaste = u.reason.toLowerCase().includes("jam") || u.reason.toLowerCase().includes("damage") || u.reason.toLowerCase().includes("spoilage");
+
+                        return (
+                          <tr key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                            <td className="p-3 font-mono text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                              {formatDate(u.createdAt)}
+                            </td>
+                            <td className="p-3 font-bold text-slate-800 dark:text-white">
+                              {u.product?.name || `Product #${u.productId}`}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className="px-2 py-0.5 rounded-full font-bold text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                                {u.quantity} {u.unitType === "package" ? "pkg" : "sheets"}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                  isAuto
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
+                                    : isLoad
+                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                    : isWaste
+                                    ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                    : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                }`}
+                              >
+                                {u.reason}
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
+                              {u.user?.fullName || u.user?.username || "Staff"}
+                            </td>
+                            <td className="p-3 text-slate-400 dark:text-slate-500 italic text-[11px]">
+                              {u.notes || "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs"
+              >
+                Close
               </button>
             </div>
           </div>
