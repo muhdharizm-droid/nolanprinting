@@ -119,8 +119,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <BrandLoader
           fullScreen={false}
-          message="Verifying session..."
-          submessage="Securing your Nolan Printing workspace"
+          message={language === "ms" ? "Mengesahkan sesi pengguna..." : "Verifying session..."}
+          submessage={language === "ms" ? "Menjamin ruang kerja Nolan Printing anda" : "Securing your Nolan Printing workspace"}
         />
       </div>
     );
@@ -251,9 +251,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const roleBadges: Record<string, { label: string; bg: string }> = {
-    owner: { label: "👑 Owner", bg: "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800" },
-    cashier: { label: "💳 Cashier", bg: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800" },
-    stock_handler: { label: "📦 Stock Handler", bg: "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800" },
+    owner: {
+      label: language === "ms" ? "👑 Pemilik Kedai" : "👑 Store Owner",
+      bg: "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+    },
+    cashier: {
+      label: language === "ms" ? "💳 Juruwang" : "💳 Cashier",
+      bg: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+    },
+    stock_handler: {
+      label: language === "ms" ? "📦 Pengurus Stok" : "📦 Stock Manager",
+      bg: "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800",
+    },
+  };
+
+  const getBreadcrumbTitle = (path: string) => {
+    const section = path.split("/")[1] || "home";
+    const map: Record<string, { en: string; ms: string }> = {
+      home: { en: "Home", ms: "Laman Utama" },
+      pos: { en: "Point of Sale (POS)", ms: "Sistem POS (Jualan)" },
+      inventory: { en: "Inventory", ms: "Inventori" },
+      categories: { en: "Categories", ms: "Kategori" },
+      suppliers: { en: "Suppliers", ms: "Pembekal" },
+      workflows: { en: "Workflows & Pipelines", ms: "Aliran Kerja & Saluran" },
+      dashboard: { en: "Financial Dashboard", ms: "Papan Pemuka Kewangan" },
+      reports: { en: "Analytics & Reports", ms: "Analitik & Laporan" },
+      transactions: { en: "Transactions", ms: "Transaksi" },
+      expenses: { en: "Expense Management", ms: "Pengurusan Perbelanjaan" },
+      staff: { en: "Staff Management", ms: "Pengurusan Staf" },
+      logs: { en: "System Audit Log", ms: "Log Audit Sistem" },
+      settings: { en: "System Settings", ms: "Tetapan Sistem" },
+      profile: { en: "My Profile", ms: "Profil Saya" },
+    };
+    return map[section]?.[language] || section;
   };
 
   return (
@@ -264,7 +294,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="relative w-16 h-8 rounded-lg overflow-hidden bg-white shrink-0 border border-white/20 shadow p-0.5 flex items-center justify-center">
             <Image src="/images/logo.jpeg" alt="Logo" fill className="object-contain" />
           </div>
-          <span className="font-bold text-sm tracking-tight">Nolan Printing</span>
+          <span className="font-bold text-sm tracking-tight">{t("app_name")}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -314,7 +344,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               NOLAN PRINTING
             </div>
             <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mt-1">
-              POS & Inventory Suite
+              {language === "ms" ? "Sistem POS & Inventori" : "POS & Inventory Suite"}
             </div>
           </div>
         </Link>
@@ -395,12 +425,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {theme === "dark" ? (
                 <>
                   <Sun className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-[11px]">Light</span>
+                  <span className="text-[11px]">{t("light_mode")}</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[11px]">Dark</span>
+                  <span className="text-[11px]">{t("dark_mode")}</span>
                 </>
               )}
             </button>
@@ -442,9 +472,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Desktop Sticky Header Bar */}
         <header className="sticky top-0 z-30 hidden md:flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 py-2.5 transition-colors">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>Nolan Printing Services</span>
+            <span>{t("app_name")}</span>
             <span className="text-slate-300 dark:text-slate-700">•</span>
-            <span className="text-slate-700 dark:text-slate-300 capitalize">{pathname.split("/")[1] || "Home"}</span>
+            <span className="text-slate-700 dark:text-slate-300">{getBreadcrumbTitle(pathname)}</span>
           </div>
 
           <div className="flex items-center gap-3">

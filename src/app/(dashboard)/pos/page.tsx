@@ -21,6 +21,11 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import {
+  translateCategory,
+  translatePaperMaterial,
+  translateFinishing,
+} from "@/lib/i18n/translations";
 import { formatMYR } from "@/lib/utils";
 import ThermalReceipt from "@/components/ThermalReceipt";
 
@@ -76,7 +81,7 @@ const FINISHING_OPTIONS = [
 ];
 
 export default function PosPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -303,25 +308,25 @@ export default function PosPage() {
 
     const pages = parseInt(calcPages);
     if (!calcPages || isNaN(pages) || pages < 1) {
-      errors.pages = "Pages count is required (min 1).";
+      errors.pages = language === "ms" ? "Bilangan halaman diperlukan (min 1)." : "Pages count is required (min 1).";
     }
 
     const copies = parseInt(calcCopies);
     if (!calcCopies || isNaN(copies) || copies < 1) {
-      errors.copies = "Copies count is required (min 1).";
+      errors.copies = language === "ms" ? "Bilangan salinan diperlukan (min 1)." : "Copies count is required (min 1).";
     }
 
     if (calcUnitPrice.trim() === "") {
-      errors.unitPrice = "Price rate per page is required.";
+      errors.unitPrice = language === "ms" ? "Kadar harga setiap halaman diperlukan." : "Price rate per page is required.";
     } else if (isNaN(parseFloat(calcUnitPrice)) || parseFloat(calcUnitPrice) <= 0) {
-      errors.unitPrice = "Enter a valid price rate greater than RM 0.00 (e.g. 0.20 or 0.50).";
+      errors.unitPrice = language === "ms" ? "Masukkan kadar harga sah melebihi RM 0.00 (cth. 0.20 atau 0.50)." : "Enter a valid price rate greater than RM 0.00 (e.g. 0.20 or 0.50).";
     }
 
     if (calcFinishingId !== "none") {
       if (calcFinishingPrice.trim() === "") {
-        errors.finishingPrice = "Finishing price is required.";
+        errors.finishingPrice = language === "ms" ? "Harga kemasan diperlukan." : "Finishing price is required.";
       } else if (isNaN(parseFloat(calcFinishingPrice)) || parseFloat(calcFinishingPrice) < 0) {
-        errors.finishingPrice = "Enter a valid finishing price (e.g. 2.50 or 0).";
+        errors.finishingPrice = language === "ms" ? "Masukkan harga kemasan yang sah (cth. 2.50 atau 0)." : "Enter a valid finishing price (e.g. 2.50 or 0).";
       }
     }
 
@@ -344,9 +349,9 @@ export default function PosPage() {
     const material = getSelectedMaterial();
     const finishing = getSelectedFinishing();
 
-    const serviceLabel = calcServiceType === "print" ? "Printing" : "Photocopy";
-    const sideLabel = calcSides === "single" ? "1-Sided" : "2-Sided (Duplex)";
-    const colorLabel = calcColorMode === "bw" ? "B&W" : "Full Color";
+    const serviceLabel = calcServiceType === "print" ? (language === "ms" ? "Cetakan" : "Printing") : (language === "ms" ? "Fotostat" : "Photocopy");
+    const sideLabel = calcSides === "single" ? (language === "ms" ? "1-Muka" : "1-Sided") : (language === "ms" ? "2-Muka (Dupleks)" : "2-Sided (Duplex)");
+    const colorLabel = calcColorMode === "bw" ? (language === "ms" ? "Hitam Putih" : "B&W") : (language === "ms" ? "Warna Penuh" : "Full Color");
 
     const pages = Math.max(1, parseInt(calcPages) || 1);
     const copies = Math.max(1, parseInt(calcCopies) || 1);
@@ -388,7 +393,7 @@ export default function PosPage() {
     const uRate = parseFloat(calcUnitPrice) || 0;
     const fRate = parseFloat(calcFinishingPrice) || 0;
 
-    const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${material.name} | ${pages} pgs × ${copies} set${copies > 1 ? "s" : ""} @ RM ${uRate.toFixed(2)}/pg${finishing.id !== "none" ? ` + ${finishing.name} (RM ${fRate.toFixed(2)})` : ""}`;
+    const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${translatePaperMaterial(material.name, language)} | ${pages} ${language === "ms" ? "hlm" : "pgs"} × ${copies} ${language === "ms" ? "set" : `set${copies > 1 ? "s" : ""}`} @ RM ${uRate.toFixed(2)}/${language === "ms" ? "hlm" : "pg"}${finishing.id !== "none" ? ` + ${translateFinishing(finishing.name, language)} (RM ${fRate.toFixed(2)})` : ""}`;
 
     setCart((prev) => [
       ...prev,
@@ -416,7 +421,7 @@ export default function PosPage() {
             const newQty = item.quantity + delta;
             if (newQty <= 0) return null;
             if (!item.isService && item.stock && newQty > item.stock) {
-              alert(`Only ${item.stock} units available.`);
+              alert(language === "ms" ? `Hanya ${item.stock} unit tersedia.` : `Only ${item.stock} units available.`);
               return item;
             }
             return { ...item, quantity: newQty };
@@ -432,7 +437,7 @@ export default function PosPage() {
   };
 
   const clearCart = () => {
-    if (cart.length > 0 && confirm("Are you sure you want to clear current bill?")) {
+    if (cart.length > 0 && confirm(language === "ms" ? "Adakah anda pasti mahu mengosongkan bil semasa?" : "Are you sure you want to clear current bill?")) {
       setCart([]);
     }
   };
@@ -442,7 +447,7 @@ export default function PosPage() {
     if (cart.length === 0) return;
     localStorage.setItem("nolan_held_bill", JSON.stringify(cart));
     setCart([]);
-    alert("Bill has been held. You can resume it anytime.");
+    alert(language === "ms" ? "Bil telah ditahan. Anda boleh menyambungnya semula pada bila-bila masa." : "Bill has been held. You can resume it anytime.");
   };
 
   const recallBill = () => {
@@ -451,7 +456,7 @@ export default function PosPage() {
       setCart(JSON.parse(saved));
       localStorage.removeItem("nolan_held_bill");
     } else {
-      alert("No held bill found.");
+      alert(language === "ms" ? "Tiada bil yang ditahan ditemui." : "No held bill found.");
     }
   };
 
@@ -524,7 +529,9 @@ export default function PosPage() {
           <div>
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("pos")}</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Fast checkout, custom print pricing matrix & standardized receipts
+              {language === "ms"
+                ? "Daftar keluar pantas, matriks harga cetakan khas & resit piawai"
+                : "Fast checkout, custom print pricing matrix & standardized receipts"}
             </p>
           </div>
         </div>
@@ -545,7 +552,7 @@ export default function PosPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 transition"
           >
             <Clock className="w-3.5 h-3.5 text-slate-500" />
-            <span>Recall Bill</span>
+            <span>{t("recall_bill")}</span>
           </button>
         </div>
       </div>
@@ -601,7 +608,7 @@ export default function PosPage() {
                     : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100"
                 }`}
               >
-                {c.name}
+                {translateCategory(c.name, language)}
               </button>
             ))}
           </div>
@@ -627,7 +634,7 @@ export default function PosPage() {
               ))
             ) : filteredProducts.length === 0 ? (
               <div className="col-span-full p-8 text-center text-slate-400 font-medium text-xs">
-                No items found.
+                {language === "ms" ? "Tiada item ditemui." : "No items found."}
               </div>
             ) : filteredProducts.map((product) => {
               const isLowStock = !product.isService && product.stock <= product.threshold;
@@ -646,11 +653,11 @@ export default function PosPage() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 truncate max-w-[80px]">
-                        {product.category?.name || "Product"}
+                        {translateCategory(product.category?.name, language) || (language === "ms" ? "Produk" : "Product")}
                       </span>
                       {product.isService ? (
                         <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
-                          Service
+                          {t("service")}
                         </span>
                       ) : (
                         <span
@@ -662,7 +669,7 @@ export default function PosPage() {
                               : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                           }`}
                         >
-                          {isOut ? "Out of Stock" : `${product.stock} in stock`}
+                          {isOut ? t("out_of_stock") : `${product.stock} ${t("in_stock")}`}
                         </span>
                       )}
                     </div>
@@ -700,7 +707,7 @@ export default function PosPage() {
               <ShoppingCart className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <h2 className="font-bold text-sm text-slate-800 dark:text-white">{t("cart")}</h2>
               <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
-                {cart.reduce((s, i) => s + i.quantity, 0)} items
+                {cart.reduce((s, i) => s + i.quantity, 0)} {t("items_count")}
               </span>
             </div>
             {cart.length > 0 && (
@@ -720,7 +727,7 @@ export default function PosPage() {
               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
                 <ShoppingCart className="w-10 h-10 stroke-[1.5] mb-2 opacity-40" />
                 <p className="text-xs font-semibold">{t("empty_cart")}</p>
-                <p className="text-[11px] text-slate-400 mt-1">Select items or scan barcode to begin</p>
+                <p className="text-[11px] text-slate-400 mt-1">{t("cart_empty_hint")}</p>
               </div>
             ) : (
               cart.map((item) => (
@@ -744,7 +751,7 @@ export default function PosPage() {
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {formatMYR(item.price)} each
+                      {formatMYR(item.price)} {t("each")}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -836,8 +843,12 @@ export default function PosPage() {
                   <Printer className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Custom Print & Photocopy Calculator</h3>
-                  <p className="text-[11px] text-blue-100">Manual price entry & job specifications</p>
+                  <h3 className="font-bold text-sm">
+                    {language === "ms" ? "Kalkulator Cetakan & Fotostat Khas" : "Custom Print & Photocopy Calculator"}
+                  </h3>
+                  <p className="text-[11px] text-blue-100">
+                    {language === "ms" ? "Kemasukan harga manual & spesifikasi kerja" : "Manual price entry & job specifications"}
+                  </p>
                 </div>
               </div>
               <button
@@ -866,7 +877,7 @@ export default function PosPage() {
                           : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
                       }`}
                     >
-                      Printing Service (Digital Print)
+                      {language === "ms" ? "Perkhidmatan Cetakan (Digital Print)" : "Printing Service (Digital Print)"}
                     </button>
                     <button
                       type="button"
@@ -877,7 +888,7 @@ export default function PosPage() {
                           : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
                       }`}
                     >
-                      Photocopy Service (Fotostat)
+                      {language === "ms" ? "Perkhidmatan Fotostat" : "Photocopy Service (Fotostat)"}
                     </button>
                   </div>
                 </div>
@@ -887,7 +898,7 @@ export default function PosPage() {
                   {/* Paper Size */}
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                      Paper Size <span className="text-rose-500">*</span>
+                      {t("paper_size")} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-4 gap-1.5">
                       {(["A4", "A3", "A5", "B5"] as PaperSize[]).map((size) => (
@@ -910,7 +921,7 @@ export default function PosPage() {
                   {/* Color Mode */}
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                      Color Mode <span className="text-rose-500">*</span>
+                      {t("color_mode")} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
                       <button
@@ -922,7 +933,7 @@ export default function PosPage() {
                             : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                         }`}
                       >
-                        B&W (Grayscale)
+                        {t("bw_grayscale")}
                       </button>
                       <button
                         type="button"
@@ -933,7 +944,7 @@ export default function PosPage() {
                             : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                         }`}
                       >
-                        Full Color
+                        {t("full_color")}
                       </button>
                     </div>
                   </div>
@@ -942,7 +953,7 @@ export default function PosPage() {
                 {/* Sides / Duplex */}
                 <div>
                   <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                    Sides / Duplex <span className="text-rose-500">*</span>
+                    {t("sides_duplex")} <span className="text-rose-500">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -954,7 +965,7 @@ export default function PosPage() {
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                       }`}
                     >
-                      1-Sided (Single Page per Sheet)
+                      {t("single_sided")}
                     </button>
                     <button
                       type="button"
@@ -965,7 +976,7 @@ export default function PosPage() {
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                       }`}
                     >
-                      2-Sided (Duplex / Back-to-Back)
+                      {t("double_sided")}
                     </button>
                   </div>
                 </div>
@@ -975,7 +986,7 @@ export default function PosPage() {
                   {/* Paper Material */}
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                      Paper / Material Type <span className="text-rose-500">*</span>
+                      {t("paper_material_type")} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={calcMaterialId}
@@ -984,7 +995,7 @@ export default function PosPage() {
                     >
                       {PAPER_MATERIAL_OPTIONS.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.name}
+                          {translatePaperMaterial(m.name, language)}
                         </option>
                       ))}
                     </select>
@@ -1005,7 +1016,7 @@ export default function PosPage() {
                     >
                       {FINISHING_OPTIONS.map((f) => (
                         <option key={f.id} value={f.id}>
-                          {f.name}
+                          {translateFinishing(f.name, language)}
                         </option>
                       ))}
                     </select>
@@ -1016,7 +1027,7 @@ export default function PosPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                      {t("pages_count")} (Originals) <span className="text-rose-500">*</span>
+                      {t("pages_count")} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -1039,7 +1050,7 @@ export default function PosPage() {
                   </div>
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                      {t("copies_count")} (Sets) <span className="text-rose-500">*</span>
+                      {t("copies_count")} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -1066,7 +1077,7 @@ export default function PosPage() {
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
-                      Price Rate (RM / page) <span className="text-rose-500">*</span>
+                      {t("price_rate_per_page")} <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
@@ -1077,7 +1088,7 @@ export default function PosPage() {
                         step="0.01"
                         min="0.01"
                         required
-                        placeholder="e.g. 0.20 or 0.50"
+                        placeholder={language === "ms" ? "cth. 0.20 atau 0.50" : "e.g. 0.20 or 0.50"}
                         value={calcUnitPrice}
                         onChange={(e) => {
                           setCalcUnitPrice(e.target.value);
@@ -1099,7 +1110,7 @@ export default function PosPage() {
                   {calcFinishingId !== "none" && (
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                       <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
-                        {getSelectedFinishing().name} Price (RM) <span className="text-rose-500">*</span>
+                        {translateFinishing(getSelectedFinishing().name, language)} {language === "ms" ? "Harga (RM)" : "Price (RM)"} <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
@@ -1110,7 +1121,7 @@ export default function PosPage() {
                           step="0.01"
                           min="0"
                           required
-                          placeholder="e.g. 2.50 (or 0 if free)"
+                          placeholder={language === "ms" ? "cth. 2.50 (atau 0 jika percuma)" : "e.g. 2.50 (or 0 if free)"}
                           value={calcFinishingPrice}
                           onChange={(e) => {
                             setCalcFinishingPrice(e.target.value);
@@ -1144,25 +1155,25 @@ export default function PosPage() {
                     <div className="p-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-xl space-y-2">
                       <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
                         <span>
-                          Rate: <strong>{calcUnitPrice.trim() !== "" ? `RM ${(parseFloat(calcUnitPrice) || 0).toFixed(2)} / page` : "Required"}</strong>
+                          {language === "ms" ? "Kadar" : "Rate"}: <strong>{calcUnitPrice.trim() !== "" ? `RM ${(parseFloat(calcUnitPrice) || 0).toFixed(2)} / ${language === "ms" ? "halaman" : "page"}` : (language === "ms" ? "Diperlukan" : "Required")}</strong>
                         </span>
                         <span>
-                          Total Pages: <strong>{totalPages} page{totalPages > 1 ? "s" : ""}</strong>
+                          {language === "ms" ? "Jumlah Halaman" : "Total Pages"}: <strong>{totalPages} {language === "ms" ? "halaman" : `page${totalPages > 1 ? "s" : ""}`}</strong>
                         </span>
                       </div>
 
                       <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
                         <Layers className="w-3.5 h-3.5 flex-shrink-0" />
                         <span>
-                          Auto-consumes: <strong>{totalSheets} sheet{totalSheets > 1 ? "s" : ""}</strong> of {material.name}
-                          {finishing.id !== "none" ? ` + ${finishing.name}` : ""}
+                          {t("auto_consumes")}: <strong>{totalSheets} {language === "ms" ? "helaian" : `sheet${totalSheets > 1 ? "s" : ""}`}</strong> {language === "ms" ? "daripada" : "of"} {translatePaperMaterial(material.name, language)}
+                          {finishing.id !== "none" ? ` + ${translateFinishing(finishing.name, language)}` : ""}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-blue-200/60 dark:border-blue-900/40">
                         <div>
                           <span className="text-xs text-blue-700 dark:text-blue-400 font-bold block">
-                            Total Job Price:
+                            {t("total_job_price")}:
                           </span>
                           <span className="text-xl font-black text-blue-950 dark:text-blue-200">
                             {breakdown.isConfigured
@@ -1172,11 +1183,11 @@ export default function PosPage() {
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                             {breakdown.isConfigured ? (
                               <>
-                                ({totalPages} pgs @ RM {breakdown.unitPriceNum.toFixed(2)}/pg
-                                {finishing.id !== "none" ? ` + finishing` : ""})
+                                ({totalPages} {language === "ms" ? "hlm" : "pgs"} @ RM {breakdown.unitPriceNum.toFixed(2)}/{language === "ms" ? "hlm" : "pg"}
+                                {finishing.id !== "none" ? ` + ${language === "ms" ? "kemasan" : "finishing"}` : ""})
                               </>
                             ) : (
-                              "Enter price rate above"
+                              t("enter_price_rate")
                             )}
                           </span>
                         </div>
@@ -1186,7 +1197,7 @@ export default function PosPage() {
                             onClick={() => setCalcModalOpen(false)}
                             className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold transition"
                           >
-                            Cancel
+                            {t("cancel")}
                           </button>
                           <button
                             type="submit"
@@ -1211,8 +1222,8 @@ export default function PosPage() {
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-base text-slate-800 dark:text-white">Checkout Payment</h3>
-                <p className="text-xs text-slate-400">Select method and confirm payment</p>
+                <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("checkout_payment")}</h3>
+                <p className="text-xs text-slate-400">{t("select_method_confirm")}</p>
               </div>
               <button
                 onClick={() => setCheckoutModalOpen(false)}
@@ -1231,7 +1242,7 @@ export default function PosPage() {
 
               {/* Grand Total Display */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl text-center border border-slate-200/80 dark:border-slate-700">
-                <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">Total Amount Due</span>
+                <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">{t("total_amount_due")}</span>
                 <div className="text-3xl font-black text-blue-600 dark:text-blue-400 mt-1">
                   {formatMYR(grandTotal)}
                 </div>
@@ -1239,7 +1250,7 @@ export default function PosPage() {
 
               {/* Payment Methods */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Payment Method</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">{t("payment_method")}</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => setPaymentMethod("Cash")}
@@ -1250,7 +1261,7 @@ export default function PosPage() {
                     }`}
                   >
                     <Banknote className="w-5 h-5 text-emerald-600" />
-                    <span>Cash</span>
+                    <span>{t("cash")}</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod("Card")}
@@ -1261,7 +1272,7 @@ export default function PosPage() {
                     }`}
                   >
                     <CreditCard className="w-5 h-5 text-blue-600" />
-                    <span>Card / EDC</span>
+                    <span>{t("card_edc")}</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod("QR")}
@@ -1272,7 +1283,7 @@ export default function PosPage() {
                     }`}
                   >
                     <QrCode className="w-5 h-5 text-purple-600" />
-                    <span>DuitNow QR</span>
+                    <span>{t("duitnow_qr")}</span>
                   </button>
                 </div>
               </div>
@@ -1282,7 +1293,7 @@ export default function PosPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Cash Received (RM)
+                      {t("cash_received")}
                     </label>
                     <input
                       type="number"
@@ -1300,7 +1311,7 @@ export default function PosPage() {
                       onClick={() => setCashReceived(grandTotal.toFixed(2))}
                       className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200"
                     >
-                      Exact
+                      {t("exact_amount")}
                     </button>
                     {[10, 20, 50, 100].map((val) => (
                       <button
@@ -1316,7 +1327,7 @@ export default function PosPage() {
 
                   {/* Change Output */}
                   <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs">
-                    <span className="font-bold text-emerald-800 dark:text-emerald-300">Change Due:</span>
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300">{t("change_due")}:</span>
                     <span className="text-base font-black text-emerald-900 dark:text-emerald-200">
                       {formatMYR(changeDue)}
                     </span>
@@ -1330,7 +1341,7 @@ export default function PosPage() {
                 disabled={loadingCheckout || (paymentMethod === "Cash" && parseFloat(cashReceived || "0") < grandTotal)}
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loadingCheckout ? "Processing Transaction..." : `Confirm & Complete (${formatMYR(grandTotal)})`}
+                {loadingCheckout ? t("processing_tx") : `${t("confirm_and_complete")} (${formatMYR(grandTotal)})`}
               </button>
             </div>
           </div>
@@ -1354,17 +1365,23 @@ export default function PosPage() {
             <div className="p-4 bg-emerald-600 text-white text-center flex-shrink-0">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-1 text-white" />
               <h3 className="font-black text-base">{t("receipt_prompt")}</h3>
-              <p className="text-emerald-100 text-xs">Sale #{completedSale.sale.id} completed successfully</p>
+              <p className="text-emerald-100 text-xs">
+                {language === "ms"
+                  ? `Jualan #${completedSale.sale.id} berjaya diselesaikan`
+                  : `Sale #${completedSale.sale.id} completed successfully`}
+              </p>
             </div>
 
             {/* Standard Paper Format Switcher */}
             <div className="flex items-center justify-center gap-1.5 p-2 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">Paper Format:</span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">
+                {language === "ms" ? "Format Kertas:" : "Paper Format:"}
+              </span>
               {[
-                { id: "80mm", label: "80mm Roll" },
-                { id: "58mm", label: "58mm Mini" },
-                { id: "a4", label: "A4 Invoice" },
-                { id: "a5", label: "A5 Slip" },
+                { id: "80mm", label: language === "ms" ? "Gelung 80mm" : "80mm Roll" },
+                { id: "58mm", label: language === "ms" ? "Mini 58mm" : "58mm Mini" },
+                { id: "a4", label: language === "ms" ? "Invois A4" : "A4 Invoice" },
+                { id: "a5", label: language === "ms" ? "Slip A5" : "A5 Slip" },
               ].map((fmt) => (
                 <button
                   key={fmt.id}
@@ -1425,7 +1442,7 @@ export default function PosPage() {
                   className="py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-1.5 transition"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
+                  <span>{t("share_whatsapp")}</span>
                 </a>
                 <button
                   onClick={() => setCompletedSale(null)}

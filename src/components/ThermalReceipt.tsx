@@ -2,6 +2,8 @@
 
 import React from "react";
 import Image from "next/image";
+import { useI18n } from "@/lib/i18n/context";
+import { translatePaymentMethod } from "@/lib/i18n/translations";
 import { formatMYR, formatDate } from "@/lib/utils";
 
 export interface ThermalReceiptProps {
@@ -43,6 +45,9 @@ export default function ThermalReceipt({
   isVoided = false,
   paperFormat = "80mm",
 }: ThermalReceiptProps) {
+  const { t, language } = useI18n();
+  const translatedMethod = translatePaymentMethod(paymentMethod, language);
+
   // 1. A4 STANDARD CORPORATE TAX INVOICE / RECEIPT
   if (paperFormat === "a4") {
     return (
@@ -73,7 +78,7 @@ export default function ThermalReceipt({
 
           <div className="text-right">
             <span className="inline-block px-3 py-1 bg-slate-900 text-white text-xs font-black uppercase tracking-wider rounded-md">
-              OFFICIAL RECEIPT
+              {t("official_receipt")}
             </span>
             <div className="text-base font-black text-slate-900 mt-2 font-mono">#{saleId}</div>
             <div className="text-xs text-slate-500">{formatDate(createdAt)}</div>
@@ -82,21 +87,21 @@ export default function ThermalReceipt({
 
         {isVoided && (
           <div className="my-4 p-2 bg-red-100 border border-red-500 text-red-700 font-black text-xs text-center uppercase tracking-widest rounded-lg">
-            *** THIS TRANSACTION HAS BEEN VOIDED ***
+            {t("voided_transaction_banner")}
           </div>
         )}
 
         {/* Invoice Meta Grid */}
         <div className="grid grid-cols-2 gap-4 py-4 text-xs border-b border-slate-200">
           <div>
-            <span className="text-slate-400 font-bold uppercase text-[10px]">Issued To</span>
-            <div className="font-bold text-slate-800 text-sm mt-0.5">Cash Customer / Walk-in</div>
-            <div className="text-slate-500">Payment Method: {paymentMethod}</div>
+            <span className="text-slate-400 font-bold uppercase text-[10px]">{t("issued_to")}</span>
+            <div className="font-bold text-slate-800 text-sm mt-0.5">{t("cash_customer")}</div>
+            <div className="text-slate-500">{t("payment_method")}: {translatedMethod}</div>
           </div>
           <div className="text-right">
-            <span className="text-slate-400 font-bold uppercase text-[10px]">Transaction Details</span>
-            <div className="text-slate-700 mt-0.5">Cashier: <strong>{cashierName}</strong></div>
-            <div className="text-slate-500">Status: <span className="text-emerald-600 font-bold uppercase">PAID IN FULL</span></div>
+            <span className="text-slate-400 font-bold uppercase text-[10px]">{t("transaction_details")}</span>
+            <div className="text-slate-700 mt-0.5">{t("cashier")}: <strong>{cashierName}</strong></div>
+            <div className="text-slate-500">{t("status")}: <span className="text-emerald-600 font-bold uppercase">{t("paid_in_full")}</span></div>
           </div>
         </div>
 
@@ -106,10 +111,10 @@ export default function ThermalReceipt({
             <thead>
               <tr className="border-b-2 border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
                 <th className="py-2 w-8">#</th>
-                <th className="py-2">Item Description & Specifications</th>
-                <th className="py-2 text-center w-16">Qty</th>
-                <th className="py-2 text-right w-24">Price (RM)</th>
-                <th className="py-2 text-right w-24">Total (RM)</th>
+                <th className="py-2">{t("item_description_specs")}</th>
+                <th className="py-2 text-center w-16">{t("qty")}</th>
+                <th className="py-2 text-right w-24">{t("price")} (RM)</th>
+                <th className="py-2 text-right w-24">{t("total")} (RM)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -139,31 +144,31 @@ export default function ThermalReceipt({
         <div className="pt-4 border-t-2 border-slate-200 flex justify-end">
           <div className="w-64 space-y-1.5 text-xs text-right">
             <div className="flex justify-between text-slate-600">
-              <span>Subtotal:</span>
+              <span>{t("subtotal")}:</span>
               <span className="font-mono">{formatMYR(subtotal)}</span>
             </div>
             {Number(discount) > 0 && (
               <div className="flex justify-between text-rose-600">
-                <span>Discount:</span>
+                <span>{t("discount")}:</span>
                 <span className="font-mono">-{formatMYR(discount)}</span>
               </div>
             )}
             <div className="flex justify-between text-slate-600">
-              <span>Tax (6% SST):</span>
+              <span>{t("tax")}:</span>
               <span className="font-mono">{formatMYR(taxAmount)}</span>
             </div>
             <div className="flex justify-between font-black text-base text-slate-900 pt-2 border-t-2 border-slate-900">
-              <span>Grand Total:</span>
+              <span>{t("total")}:</span>
               <span className="font-mono text-blue-600">{formatMYR(total)}</span>
             </div>
             {cashReceived && (
               <>
                 <div className="flex justify-between text-slate-500 pt-1 text-[11px]">
-                  <span>Paid ({paymentMethod}):</span>
+                  <span>{t("cash_received")} ({translatedMethod}):</span>
                   <span className="font-mono">{formatMYR(cashReceived)}</span>
                 </div>
                 <div className="flex justify-between text-slate-500 text-[11px]">
-                  <span>Change:</span>
+                  <span>{t("change")}:</span>
                   <span className="font-mono font-bold">{formatMYR(changeDue || 0)}</span>
                 </div>
               </>
@@ -174,12 +179,12 @@ export default function ThermalReceipt({
         {/* Footer & Signature Block */}
         <div className="mt-8 pt-6 border-t border-slate-200 flex justify-between items-end text-xs text-slate-500">
           <div>
-            <p className="font-semibold text-slate-700">Thank you for your business!</p>
-            <p className="text-[11px]">Goods sold are non-refundable. Please keep this receipt for warranty.</p>
+            <p className="font-semibold text-slate-700">{t("receipt_thank_you")}</p>
+            <p className="text-[11px]">{t("goods_non_refundable")}</p>
           </div>
           <div className="text-center w-40">
             <div className="border-b border-slate-400 pb-12 mb-1"></div>
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">Authorized Signature & Stamp</span>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold">{t("authorized_signature_stamp")}</span>
           </div>
         </div>
       </div>
@@ -203,23 +208,23 @@ export default function ThermalReceipt({
             </div>
           </div>
           <div className="text-right">
-            <span className="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-bold rounded">A5 RECEIPT</span>
+            <span className="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-bold rounded">A5 {t("official_receipt")}</span>
             <div className="font-mono text-xs font-black mt-1">#{saleId}</div>
           </div>
         </div>
 
         <div className="py-2 text-[11px] text-slate-600 flex justify-between border-b border-slate-100">
-          <span>Date: {formatDate(createdAt)}</span>
-          <span>Cashier: <strong>{cashierName}</strong></span>
+          <span>{t("date")}: {formatDate(createdAt)}</span>
+          <span>{t("cashier")}: <strong>{cashierName}</strong></span>
         </div>
 
         <div className="py-2">
           <table className="w-full text-left text-[11px]">
             <thead>
               <tr className="border-b border-slate-200 text-slate-400 uppercase text-[9px]">
-                <th className="py-1">Description</th>
-                <th className="py-1 text-center">Qty</th>
-                <th className="py-1 text-right">Total</th>
+                <th className="py-1">{t("description")}</th>
+                <th className="py-1 text-center">{t("qty")}</th>
+                <th className="py-1 text-right">{t("total")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -242,28 +247,28 @@ export default function ThermalReceipt({
         <div className="pt-2 border-t border-slate-200 flex justify-end">
           <div className="w-48 space-y-1 text-[11px] text-right">
             <div className="flex justify-between text-slate-600">
-              <span>Subtotal:</span>
+              <span>{t("subtotal")}:</span>
               <span className="font-mono">{formatMYR(subtotal)}</span>
             </div>
             {Number(discount) > 0 && (
               <div className="flex justify-between text-rose-600">
-                <span>Discount:</span>
+                <span>{t("discount")}:</span>
                 <span className="font-mono">-{formatMYR(discount)}</span>
               </div>
             )}
             <div className="flex justify-between text-slate-600">
-              <span>Tax (6% SST):</span>
+              <span>{t("tax")}:</span>
               <span className="font-mono">{formatMYR(taxAmount)}</span>
             </div>
             <div className="flex justify-between font-black text-sm text-slate-900 pt-1 border-t border-slate-800">
-              <span>Total:</span>
+              <span>{t("total")}:</span>
               <span className="font-mono text-blue-600">{formatMYR(total)}</span>
             </div>
           </div>
         </div>
 
         <div className="text-center pt-4 text-[10px] text-slate-400">
-          Thank you for printing with Nolan!
+          {t("thank_you_nolan")}
         </div>
       </div>
     );
@@ -298,17 +303,17 @@ export default function ThermalReceipt({
 
         <div className="py-1.5 border-b border-dashed border-neutral-400 space-y-0.5 text-right text-[9px]">
           <div className="flex justify-between">
-            <span>Subtotal:</span>
+            <span>{t("subtotal")}:</span>
             <span>{formatMYR(subtotal)}</span>
           </div>
           <div className="flex justify-between font-bold text-[10px]">
-            <span>Total:</span>
+            <span>{t("total")}:</span>
             <span>{formatMYR(total)}</span>
           </div>
         </div>
 
         <div className="text-center pt-1.5 text-[8.5px] text-neutral-500">
-          *** CUSTOMER COPY (58mm) ***
+          *** {t("customer_copy")} (58mm) ***
         </div>
       </div>
     );
@@ -341,7 +346,7 @@ export default function ThermalReceipt({
 
         {isVoided && (
           <div className="mt-2 py-1 bg-red-100 border border-red-400 text-red-700 font-black text-xs uppercase tracking-widest rounded">
-            *** VOIDED TRANSACTION ***
+            {t("voided_transaction_banner")}
           </div>
         )}
       </div>
@@ -349,23 +354,23 @@ export default function ThermalReceipt({
       {/* Transaction Details */}
       <div className="py-2 border-b border-dashed border-neutral-400 text-[10px] text-neutral-700 space-y-0.5">
         <div className="flex justify-between">
-          <span className="text-neutral-500">Receipt #:</span>
+          <span className="text-neutral-500">{t("sale_number")}:</span>
           <span className="font-bold text-black font-mono">#{saleId}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-neutral-500">Date/Time:</span>
+          <span className="text-neutral-500">{t("date_time")}:</span>
           <span>{formatDate(createdAt)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-neutral-500">Cashier:</span>
+          <span className="text-neutral-500">{t("cashier")}:</span>
           <span className="font-semibold text-black">{cashierName}</span>
         </div>
       </div>
 
       {/* Column Headers */}
       <div className="pt-2 pb-1 border-b border-dashed border-neutral-400 flex justify-between text-[10px] font-bold text-neutral-800 uppercase">
-        <span>Qty & Description</span>
-        <span>Amount</span>
+        <span>{t("qty")} & {t("description")}</span>
+        <span>{t("amount")}</span>
       </div>
 
       {/* Line Items */}
@@ -382,7 +387,7 @@ export default function ThermalReceipt({
                 </div>
               )}
               <div className="text-[9px] text-neutral-500 pl-3">
-                @ {formatMYR(it.priceAtSale)} each
+                @ {formatMYR(it.priceAtSale)} {t("each")}
               </div>
             </div>
             <div className="font-bold text-black text-right whitespace-nowrap pt-0.5">
@@ -395,32 +400,32 @@ export default function ThermalReceipt({
       {/* Financial Calculations */}
       <div className="py-2 border-b border-dashed border-neutral-400 space-y-1 text-right text-[10px]">
         <div className="flex justify-between text-neutral-600">
-          <span>Subtotal:</span>
+          <span>{t("subtotal")}:</span>
           <span className="font-semibold text-black">{formatMYR(subtotal)}</span>
         </div>
         {Number(discount) > 0 && (
           <div className="flex justify-between text-neutral-600">
-            <span>Discount:</span>
+            <span>{t("discount")}:</span>
             <span className="font-semibold text-black">-{formatMYR(discount)}</span>
           </div>
         )}
         <div className="flex justify-between text-neutral-600">
-          <span>Tax (6% SST):</span>
+          <span>{t("tax")}:</span>
           <span className="font-semibold text-black">{formatMYR(taxAmount)}</span>
         </div>
         <div className="flex justify-between font-black text-sm text-black pt-1.5 border-t border-dotted border-neutral-400">
-          <span>TOTAL:</span>
+          <span>{t("total")}:</span>
           <span>{formatMYR(total)}</span>
         </div>
         <div className="flex justify-between text-neutral-600 pt-1">
-          <span>Payment ({paymentMethod}):</span>
+          <span>{t("payment_method")} ({translatedMethod}):</span>
           <span className="font-semibold text-black">
             {cashReceived ? formatMYR(cashReceived) : formatMYR(total)}
           </span>
         </div>
         {changeDue !== undefined && changeDue !== null && (
           <div className="flex justify-between text-neutral-600">
-            <span>Change Due:</span>
+            <span>{t("change_due")}:</span>
             <span className="font-bold text-black">{formatMYR(changeDue)}</span>
           </div>
         )}
@@ -428,11 +433,13 @@ export default function ThermalReceipt({
 
       {/* Thermal Footer */}
       <div className="text-center pt-2.5 pb-1 text-[10px] text-neutral-600 space-y-1">
-        <p className="font-semibold text-neutral-800">Thank you for printing with Nolan!</p>
-        <p className="text-[9px] text-neutral-500">Goods sold are non-refundable.</p>
-        <p className="text-[9px] text-neutral-500">Standard 80mm POS Thermal Roll</p>
+        <p className="font-semibold text-neutral-800">{t("thank_you_nolan")}</p>
+        <p className="text-[9px] text-neutral-500">{t("goods_non_refundable")}</p>
+        <p className="text-[9px] text-neutral-500">
+          {language === "ms" ? "Gulung Termal Standard 80mm POS" : "Standard 80mm POS Thermal Roll"}
+        </p>
         <p className="font-mono text-[9px] text-neutral-400 pt-1 tracking-widest">
-          *** CUSTOMER COPY ***
+          *** {t("customer_copy")} ***
         </p>
       </div>
     </div>

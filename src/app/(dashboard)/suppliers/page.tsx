@@ -211,8 +211,8 @@ export default function SuppliersPage() {
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("suppliers")}</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {currentUser?.role === "owner"
-                ? "Admin: Full CRUD access to manage suppliers and material partners"
-                : "Stock Manager: Create and edit supplier profiles"}
+                ? t("suppliers_subtitle_admin")
+                : t("suppliers_subtitle_manager")}
             </p>
           </div>
         </div>
@@ -223,10 +223,10 @@ export default function SuppliersPage() {
               setAddErrorMsg("");
               setAddModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Supplier</span>
+            <span>{t("add_supplier")}</span>
           </button>
         )}
       </div>
@@ -255,7 +255,7 @@ export default function SuppliersPage() {
         </div>
       ) : suppliers.length === 0 ? (
         <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-          No suppliers registered yet.
+          {t("no_suppliers_found")}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -273,8 +273,8 @@ export default function SuppliersPage() {
                   {canModify && (
                     <button
                       onClick={() => openEditModal(sup)}
-                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition"
-                      title="Edit Supplier"
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition cursor-pointer"
+                      title={t("edit_supplier")}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -285,8 +285,8 @@ export default function SuppliersPage() {
                         setDeletingSupplier(sup);
                         setDeleteModalOpen(true);
                       }}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
-                      title="Delete Supplier (Admin Only)"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
+                      title={t("delete_supplier")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -319,7 +319,7 @@ export default function SuppliersPage() {
             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
               <span className="flex items-center gap-1 text-slate-400">
                 <Package className="w-3.5 h-3.5" />
-                <span>{sup._count?.products || 0} products supplied</span>
+                <span>{sup._count?.products || 0} {t("products_supplied_count")}</span>
               </span>
               <span className="text-[11px] text-slate-400 font-mono">
                 #{sup.id}
@@ -335,7 +335,7 @@ export default function SuppliersPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Add New Supplier</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("add_new_supplier")}</h3>
               <button onClick={() => setAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
@@ -349,7 +349,7 @@ export default function SuppliersPage() {
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Company / Supplier Name</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("company_supplier_name")}</label>
                 <input
                   type="text"
                   required
@@ -361,7 +361,7 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Phone</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("contact_phone")}</label>
                 <input
                   type="text"
                   placeholder="e.g. 03-8888 9999 / 012-3456789"
@@ -372,7 +372,7 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("email_address")}</label>
                 <input
                   type="email"
                   placeholder="e.g. orders@paperone.com.my"
@@ -383,7 +383,7 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Office / Factory Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("office_factory_address")}</label>
                 <textarea
                   rows={3}
                   placeholder="Street address, Industrial area..."
@@ -398,7 +398,7 @@ export default function SuppliersPage() {
                 disabled={addLoading}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50"
               >
-                {addLoading ? "Saving Supplier..." : "Save Supplier"}
+                {addLoading ? t("saving_supplier") : t("save_supplier")}
               </button>
             </form>
           </div>
@@ -410,7 +410,7 @@ export default function SuppliersPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Edit Supplier: {editingSupplier.name}</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("edit_supplier")}: {editingSupplier.name}</h3>
               <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
@@ -424,7 +424,7 @@ export default function SuppliersPage() {
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Company / Supplier Name</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("company_supplier_name")}</label>
                 <input
                   type="text"
                   required
@@ -435,7 +435,7 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Phone</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("contact_phone")}</label>
                 <input
                   type="text"
                   value={editContact}
@@ -445,7 +445,7 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("email_address")}</label>
                 <input
                   type="email"
                   value={editEmail}
@@ -455,7 +455,7 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Office / Factory Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("office_factory_address")}</label>
                 <textarea
                   rows={3}
                   value={editAddress}
@@ -469,7 +469,7 @@ export default function SuppliersPage() {
                 disabled={editLoading}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50"
               >
-                {editLoading ? "Saving Changes..." : "Save Changes"}
+                {editLoading ? t("saving_changes") : t("save_changes")}
               </button>
             </form>
           </div>
@@ -484,10 +484,10 @@ export default function SuppliersPage() {
               <Trash2 className="w-6 h-6" />
             </div>
             <div className="text-center">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Delete Supplier?</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("delete_supplier_q")}</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Are you sure you want to remove <strong>{deletingSupplier.name}</strong>?
-                Any products currently linked to this supplier will be unlinked safely.
+                {t("delete_supplier_confirm")} <strong className="text-slate-700 dark:text-slate-200">{deletingSupplier.name}</strong>?{" "}
+                {t("delete_supplier_safe_unlink")}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -495,14 +495,14 @@ export default function SuppliersPage() {
                 onClick={() => setDeleteModalOpen(false)}
                 className="py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 onClick={handleDeleteSubmit}
                 disabled={deleteLoading}
                 className="py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl font-bold text-xs transition disabled:opacity-50"
               >
-                {deleteLoading ? "Deleting..." : "Delete Supplier"}
+                {deleteLoading ? t("deleting") : t("delete_supplier")}
               </button>
             </div>
           </div>

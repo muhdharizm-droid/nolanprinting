@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ScrollText, ShieldCheck, Clock, User } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { translateRole } from "@/lib/i18n/translations";
 import { formatDate } from "@/lib/utils";
 
 interface LogItem {
@@ -14,7 +15,7 @@ interface LogItem {
 }
 
 export default function LogsPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,7 @@ export default function LogsPage() {
         </div>
         <div>
           <h1 className="text-lg font-bold text-slate-800">{t("audit_log")}</h1>
-          <p className="text-xs text-slate-500">Tamper-evident record of user logins, price updates, stock changes, and voids</p>
+          <p className="text-xs text-slate-500">{t("logs_subtitle")}</p>
         </div>
       </div>
 
@@ -61,17 +62,17 @@ export default function LogsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
               <tr>
-                <th className="p-3.5">Timestamp</th>
-                <th className="p-3.5">User</th>
-                <th className="p-3.5">Action Event</th>
-                <th className="p-3.5">Details & Remarks</th>
+                <th className="p-3.5">{t("timestamp")}</th>
+                <th className="p-3.5">{t("user_col")}</th>
+                <th className="p-3.5">{t("action_event")}</th>
+                <th className="p-3.5">{t("details_remarks")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {logs.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
-                    No activity logs recorded yet.
+                    {t("no_logs_recorded")}
                   </td>
                 </tr>
               ) : (
@@ -85,10 +86,10 @@ export default function LogsPage() {
                         <div className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-slate-400" />
                           <span>{log.user.fullName || log.user.username}</span>
-                          <span className="text-[10px] text-slate-400">({log.user.role})</span>
+                          <span className="text-[10px] text-slate-400">({translateRole(log.user.role, language)})</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 font-normal">System</span>
+                        <span className="text-slate-400 font-normal">{t("system_user")}</span>
                       )}
                     </td>
                     <td className="p-3.5">

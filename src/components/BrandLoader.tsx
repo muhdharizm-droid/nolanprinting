@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { useI18n } from "@/lib/i18n/context";
 
 interface BrandLoaderProps {
   message?: string;
@@ -10,10 +11,15 @@ interface BrandLoaderProps {
 }
 
 export default function BrandLoader({
-  message = "Loading Nolan Printing...",
-  submessage = "Preparing workspace & synchronizing records",
+  message,
+  submessage,
   fullScreen = true,
 }: BrandLoaderProps) {
+  const { t } = useI18n();
+
+  const displayMessage = message || t("loading_nolan");
+  const displaySubmessage = submessage !== undefined ? submessage : t("preparing_workspace");
+
   const content = (
     <div className="flex flex-col items-center justify-center gap-4 text-center select-none animate-fade-in p-6">
       {/* Animated Brand Emblem */}
@@ -41,11 +47,11 @@ export default function BrandLoader({
       {/* Text Info */}
       <div className="space-y-1.5 mt-1">
         <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-tight">
-          {message}
+          {displayMessage}
         </h3>
-        {submessage && (
+        {displaySubmessage && (
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-xs">
-            {submessage}
+            {displaySubmessage}
           </p>
         )}
       </div>

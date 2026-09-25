@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FolderTree, Plus, X, Layers, Edit2, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { translateCategory } from "@/lib/i18n/translations";
 import { formatDate } from "@/lib/utils";
 
 interface Category {
@@ -14,7 +15,7 @@ interface Category {
 }
 
 export default function CategoriesPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -204,10 +205,10 @@ export default function CategoriesPage() {
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("manage_categories")}</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {isAdmin
-                ? "Store Owner: Full CRUD access to add, edit, and delete product departments"
+                ? t("categories_subtitle_admin")
                 : isStockManager
-                ? "Stock Manager: Add new categories and edit department names"
-                : "Product department catalog"}
+                ? t("categories_subtitle_manager")
+                : t("categories_subtitle_catalog")}
             </p>
           </div>
         </div>
@@ -222,7 +223,7 @@ export default function CategoriesPage() {
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Category</span>
+            <span>{t("add_category")}</span>
           </button>
         )}
       </div>
@@ -270,7 +271,7 @@ export default function CategoriesPage() {
         </div>
       ) : categories.length === 0 ? (
         <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-          No categories found. Click <strong>Add Category</strong> above to create your first department.
+          {t("no_categories_found")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -290,7 +291,7 @@ export default function CategoriesPage() {
                     {canManage && (
                       <button
                         onClick={() => openEditModal(cat)}
-                        title="Edit Category Name"
+                        title={t("rename_category")}
                         className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition cursor-pointer"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -299,7 +300,7 @@ export default function CategoriesPage() {
                     {isAdmin && (
                       <button
                         onClick={() => openDeleteModal(cat)}
-                        title="Delete Category (Admin Only)"
+                        title={t("delete_category")}
                         className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -308,14 +309,14 @@ export default function CategoriesPage() {
                   </div>
                 </div>
 
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">{cat.name}</h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">Created: {formatDate(cat.createdAt)}</p>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">{translateCategory(cat.name, language)}</h3>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">{formatDate(cat.createdAt)}</p>
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Products:</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t("products_count")}</span>
                 <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-black text-xs rounded-full">
-                  {cat._count?.products || 0} items
+                  {cat._count?.products || 0} {t("items_count")}
                 </span>
               </div>
             </div>
@@ -328,7 +329,7 @@ export default function CategoriesPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">New Category</h3>
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("new_category")}</h3>
               <button
                 onClick={() => setAddModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -345,7 +346,7 @@ export default function CategoriesPage() {
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category Name *</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("category_name")} *</label>
                 <input
                   type="text"
                   required
@@ -363,14 +364,14 @@ export default function CategoriesPage() {
                   onClick={() => setAddModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={savingAdd}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50 cursor-pointer"
                 >
-                  {savingAdd ? "Saving..." : "Create Category"}
+                  {savingAdd ? t("saving") : t("create_category")}
                 </button>
               </div>
             </form>
@@ -383,7 +384,7 @@ export default function CategoriesPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Rename Category</h3>
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("rename_category")}</h3>
               <button
                 onClick={() => setEditModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -400,7 +401,7 @@ export default function CategoriesPage() {
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category Name *</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("category_name")} *</label>
                 <input
                   type="text"
                   required
@@ -417,14 +418,14 @@ export default function CategoriesPage() {
                   onClick={() => setEditModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50 cursor-pointer"
                 >
-                  {savingEdit ? "Updating..." : "Save Changes"}
+                  {savingEdit ? t("saving") : t("save_changes")}
                 </button>
               </div>
             </form>
@@ -441,13 +442,13 @@ export default function CategoriesPage() {
             </div>
 
             <div className="text-center">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Delete Category</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("delete_category")}</h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Are you sure you want to delete category{" "}
-                <strong className="text-slate-800 dark:text-white">'{deletingCat.name}'</strong>?
+                {t("are_you_sure_delete_category")}{" "}
+                <strong className="text-slate-800 dark:text-white">'{translateCategory(deletingCat.name, language)}'</strong>?
                 {(deletingCat._count?.products || 0) > 0 && (
                   <span className="block mt-1 text-amber-600 dark:text-amber-400 font-medium">
-                    ⚠️ {deletingCat._count?.products} linked products will be unlinked (set to uncategorized).
+                    ⚠️ {deletingCat._count?.products} {t("linked_products_unlinked_warning")}
                   </span>
                 )}
               </p>
@@ -462,7 +463,7 @@ export default function CategoriesPage() {
                 }}
                 className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-xs cursor-pointer"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -470,7 +471,7 @@ export default function CategoriesPage() {
                 onClick={handleDeleteConfirm}
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 disabled:opacity-50 cursor-pointer"
               >
-                {deletingLoading ? "Deleting..." : "Yes, Delete"}
+                {deletingLoading ? t("saving") : t("yes_delete")}
               </button>
             </div>
           </div>

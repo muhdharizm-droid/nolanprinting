@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import * as XLSX from "xlsx";
 import { useI18n } from "@/lib/i18n/context";
+import { translateCategory, translateExpenseCategory } from "@/lib/i18n/translations";
 import { formatMYR } from "@/lib/utils";
 import StockIntakeReportView from "@/components/StockIntakeReportView";
 
@@ -86,7 +87,7 @@ const PIE_COLORS = [
 ];
 
 export default function ReportsPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
@@ -212,7 +213,7 @@ export default function ReportsPage() {
           <div>
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("analytics")}</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Financial statements, product revenue breakdown & stock intake trends
+              {t("reports_subtitle")}
             </p>
           </div>
         </div>
@@ -229,7 +230,7 @@ export default function ReportsPage() {
               }`}
             >
               <DollarSign className="w-3.5 h-3.5" />
-              <span>Financials & Sales</span>
+              <span>{t("financials_and_sales")}</span>
             </button>
             <button
               onClick={() => setActiveReportTab("stock_intake")}
@@ -240,7 +241,7 @@ export default function ReportsPage() {
               }`}
             >
               <Truck className="w-3.5 h-3.5" />
-              <span>Stock Intake & Restock</span>
+              <span>{t("stock_intake_restock")}</span>
             </button>
           </div>
 
@@ -250,7 +251,7 @@ export default function ReportsPage() {
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
             >
               <Download className="w-4 h-4" />
-              <span>Export Excel</span>
+              <span>{t("export_excel_btn")}</span>
             </button>
           )}
         </div>
@@ -306,12 +307,12 @@ export default function ReportsPage() {
                   <DollarSign className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-sm text-slate-800 dark:text-white">P&L Financial Statement</h2>
-                  <p className="text-[11px] text-slate-400">Executive Income & Expenditure Ledger</p>
+                  <h2 className="font-bold text-sm text-slate-800 dark:text-white">{t("pl_statement")}</h2>
+                  <p className="text-[11px] text-slate-400">{t("executive_ledger")}</p>
                 </div>
               </div>
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                {summary?.totalTransactions || 0} Sales Recorded
+                {summary?.totalTransactions || 0} {t("sales_recorded")}
               </span>
             </div>
 
@@ -319,30 +320,30 @@ export default function ReportsPage() {
             <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs mt-3">
               {/* Gross Sales */}
               <div className="py-2.5 flex justify-between items-center">
-                <span className="font-semibold text-slate-600 dark:text-slate-300">1. Gross Sales Revenue</span>
+                <span className="font-semibold text-slate-600 dark:text-slate-300">1. {t("gross_sales_revenue")}</span>
                 <span className="font-bold text-slate-900 dark:text-white">{formatMYR(summary?.totalRevenue)}</span>
               </div>
 
               {/* Discounts */}
               {(summary?.totalDiscounts || 0) > 0 && (
                 <div className="py-2 flex justify-between items-center text-amber-600 dark:text-amber-400 pl-3 text-[11px]">
-                  <span>(-) Discounts Given</span>
+                  <span>(-) {t("discounts_given")}</span>
                   <span>-{formatMYR(summary?.totalDiscounts)}</span>
                 </div>
               )}
 
               {/* COGS */}
               <div className="py-2.5 flex justify-between items-center text-rose-600 dark:text-rose-400">
-                <span className="font-semibold">2. (-) Cost of Goods Sold (COGS)</span>
+                <span className="font-semibold">2. (-) {t("cogs")}</span>
                 <span className="font-bold">-{formatMYR(summary?.totalCogs)}</span>
               </div>
 
               {/* Gross Profit KPI Banner */}
               <div className="py-2.5 px-3 my-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex justify-between items-center font-bold text-slate-800 dark:text-slate-100">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-emerald-600 dark:text-emerald-400">(=) Gross Profit</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">(=) {t("gross_profit")}</span>
                   <span className="text-[10px] font-normal text-slate-400">
-                    ({summary?.grossMargin || 0}% margin)
+                    ({summary?.grossMargin || 0}% {t("profit_margin")})
                   </span>
                 </div>
                 <span className="font-black text-slate-900 dark:text-white">
@@ -352,7 +353,7 @@ export default function ReportsPage() {
 
               {/* Operating Expenses */}
               <div className="py-2.5 flex justify-between items-center text-rose-600 dark:text-rose-400">
-                <span className="font-semibold">3. (-) Total Operating Expenses</span>
+                <span className="font-semibold">3. (-) {t("total_operating_expenses")}</span>
                 <span className="font-bold">-{formatMYR(summary?.totalExpenses)}</span>
               </div>
 
@@ -364,7 +365,7 @@ export default function ReportsPage() {
                       key={e.category}
                       className="text-[10px] px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-medium"
                     >
-                      {e.category}: {formatMYR(e.amount)}
+                      {translateExpenseCategory(e.category, language)}: {formatMYR(e.amount)}
                     </span>
                   ))}
                 </div>
@@ -375,10 +376,10 @@ export default function ReportsPage() {
                 <div className="p-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white rounded-xl flex justify-between items-center shadow-md shadow-blue-600/20">
                   <div>
                     <span className="text-[11px] uppercase tracking-wider text-blue-100 font-bold block">
-                      (=) Net Operating Profit
+                      (=) {t("net_operating_profit")}
                     </span>
                     <span className="text-xs text-blue-200">
-                      Net Profit Margin: <strong>{summary?.profitMargin || 0}%</strong>
+                      {t("net_profit")} {t("profit_margin")}: <strong>{summary?.profitMargin || 0}%</strong>
                     </span>
                   </div>
                   <div className="text-xl font-black">{formatMYR(summary?.netProfit)}</div>
@@ -396,12 +397,12 @@ export default function ReportsPage() {
                 <PieIcon className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-bold text-sm text-slate-800 dark:text-white">Sales by Category</h2>
-                <p className="text-[11px] text-slate-400">Revenue contribution & market share</p>
+                <h2 className="font-bold text-sm text-slate-800 dark:text-white">{t("sales_by_category")}</h2>
+                <p className="text-[11px] text-slate-400">{t("revenue_market_share")}</p>
               </div>
             </div>
             <span className="text-[11px] font-bold text-slate-400">
-              {categoryData.length} Categories
+              {categoryData.length} {t("categories_count")}
             </span>
           </div>
 
@@ -409,7 +410,7 @@ export default function ReportsPage() {
             {categoryData.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs">
                 <PieIcon className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <span>No category sales recorded yet.</span>
+                <span>{t("no_categories_found")}</span>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
@@ -448,7 +449,7 @@ export default function ReportsPage() {
                   <Legend
                     formatter={(value) => (
                       <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                        {value}
+                        {translateCategory(value, language)}
                       </span>
                     )}
                   />
@@ -473,7 +474,7 @@ export default function ReportsPage() {
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                 />
-                <span>{c.name}:</span>
+                <span>{translateCategory(c.name, language)}:</span>
                 <strong>{c.percentage}%</strong>
               </button>
             ))}
@@ -489,11 +490,11 @@ export default function ReportsPage() {
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               <h2 className="font-bold text-sm text-slate-800 dark:text-white">
-                Product Sales Drilldown by Category
+                {t("product_sales_drilldown")}
               </h2>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Select any category above or below to inspect individual product & service revenues
+              {t("select_category_inspect")}
             </p>
           </div>
 
@@ -502,7 +503,7 @@ export default function ReportsPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search product or service..."
+              placeholder={t("search_product_service")}
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -520,7 +521,7 @@ export default function ReportsPage() {
                 : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100"
             }`}
           >
-            All Categories ({productData.length} products)
+            {t("all_categories")} ({productData.length} {t("active_items")})
           </button>
           {categoryData.map((c) => (
             <button
@@ -532,7 +533,7 @@ export default function ReportsPage() {
                   : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100"
               }`}
             >
-              {c.name} ({formatMYR(c.value)})
+              {translateCategory(c.name, language)} ({formatMYR(c.value)})
             </button>
           ))}
         </div>
@@ -542,7 +543,7 @@ export default function ReportsPage() {
           <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
             <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-              <span>Top Generating Products ({selectedCategory === "all" ? "All Categories" : selectedCategory})</span>
+              <span>{t("top_generating_products")} ({selectedCategory === "all" ? t("all_categories") : translateCategory(selectedCategory, language)})</span>
             </h3>
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
@@ -563,21 +564,21 @@ export default function ReportsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
               <tr>
-                <th className="p-3.5">Product / Service</th>
-                <th className="p-3.5">Category</th>
-                <th className="p-3.5 text-center">Type</th>
-                <th className="p-3.5 text-right">Units Sold</th>
-                <th className="p-3.5 text-right">Total Revenue</th>
-                <th className="p-3.5 text-right">COGS</th>
-                <th className="p-3.5 text-right">Gross Profit</th>
-                <th className="p-3.5 text-right">Margin</th>
+                <th className="p-3.5">{t("product_or_service")}</th>
+                <th className="p-3.5">{t("category")}</th>
+                <th className="p-3.5 text-center">{t("type")}</th>
+                <th className="p-3.5 text-right">{t("units_sold")}</th>
+                <th className="p-3.5 text-right">{t("total_revenue")}</th>
+                <th className="p-3.5 text-right">{t("cogs")}</th>
+                <th className="p-3.5 text-right">{t("gross_profit_tbl")}</th>
+                <th className="p-3.5 text-right">{t("margin_tbl")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
               {filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400">
-                    No product sales found for category: <strong>{selectedCategory}</strong>
+                    {t("no_product_sales_found")} <strong>{selectedCategory === "all" ? t("all_categories") : translateCategory(selectedCategory, language)}</strong>
                   </td>
                 </tr>
               ) : (
@@ -595,7 +596,7 @@ export default function ReportsPage() {
                       <span>{prod.productName}</span>
                     </td>
                     <td className="p-3.5 font-medium text-slate-500 dark:text-slate-400">
-                      {prod.categoryName}
+                      {translateCategory(prod.categoryName, language)}
                     </td>
                     <td className="p-3.5 text-center">
                       <span
@@ -605,7 +606,7 @@ export default function ReportsPage() {
                             : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
                         }`}
                       >
-                        {prod.isService ? "Service" : "Product"}
+                        {prod.isService ? t("service_label") : t("product_label")}
                       </span>
                     </td>
                     <td className="p-3.5 text-right font-bold text-slate-900 dark:text-white">

@@ -15,6 +15,7 @@ import {
   Save,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { translateRole, translateGender, translateRace } from "@/lib/i18n/translations";
 import { formatDate } from "@/lib/utils";
 
 interface UserProfile {
@@ -33,23 +34,23 @@ interface UserProfile {
 const roleStyles: Record<string, { badge: string; label: string; icon: string }> = {
   owner: {
     badge: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
-    label: "👑 Store Owner (Admin)",
+    label: "Store Owner (Admin)",
     icon: "👑",
   },
   cashier: {
     badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
-    label: "💳 Cashier",
+    label: "Cashier",
     icon: "💳",
   },
   stock_handler: {
     badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
-    label: "📦 Stock Manager",
+    label: "Stock Manager",
     icon: "📦",
   },
 };
 
 export default function ProfilePage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,10 +160,10 @@ export default function ProfilePage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-800 dark:text-white">
-              {t("profile") || "My Profile"}
+              {t("profile")}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Manage your personal registration information, contact details, and account password
+              {t("profile_subtitle")}
             </p>
           </div>
         </div>
@@ -204,7 +205,7 @@ export default function ProfilePage() {
                       roleStyles[profile.role]?.badge || "bg-slate-100"
                     }`}
                   >
-                    {roleStyles[profile.role]?.label || profile.role}
+                    {roleStyles[profile.role]?.icon || "👤"} {translateRole(profile.role, language)}
                   </span>
                 </div>
               </div>
@@ -216,12 +217,12 @@ export default function ProfilePage() {
                     <strong className="text-slate-800 dark:text-white">
                       {profile._count?.sales || 0}
                     </strong>{" "}
-                    sales processed
+                    {t("sales_processed")}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Joined {formatDate(profile.createdAt)}</span>
+                  <span>{t("registered_on")} {formatDate(profile.createdAt)}</span>
                 </div>
               </div>
             </div>
@@ -231,14 +232,14 @@ export default function ProfilePage() {
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
             <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
               <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>Personal Details & Security Credentials</span>
+              <span>{t("personal_details_security")}</span>
             </h3>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Full Legal Name *
+                    {t("full_legal_name")} *
                   </label>
                   <input
                     type="text"
@@ -251,7 +252,7 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    System Username (Locked)
+                    {t("system_username_locked")}
                   </label>
                   <input
                     type="text"
@@ -265,7 +266,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Phone Number
+                    {t("phone_number")}
                   </label>
                   <input
                     type="text"
@@ -278,39 +279,39 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Gender
+                    {t("gender")}
                   </label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="Male">{t("male")}</option>
+                    <option value="Female">{t("female")}</option>
+                    <option value="Other">{t("other")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Race / Ethnicity
+                    {t("race")}
                   </label>
                   <select
                     value={race}
                     onChange={(e) => setRace(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="Malay">Malay</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Indian">Indian</option>
-                    <option value="Other">Other</option>
+                    <option value="Malay">{t("malay")}</option>
+                    <option value="Chinese">{t("chinese")}</option>
+                    <option value="Indian">{t("indian")}</option>
+                    <option value="Other">{t("other")}</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Residential Address
+                  {t("residential_address")}
                 </label>
                 <textarea
                   rows={2}
@@ -323,7 +324,7 @@ export default function ProfilePage() {
 
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Change Password (Leave blank to keep current)
+                  {t("change_password_hint")}
                 </label>
                 <div className="relative">
                   <input
@@ -350,7 +351,7 @@ export default function ProfilePage() {
                   className="flex items-center gap-2 py-2.5 px-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold transition shadow-md shadow-blue-600/20 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{saving ? "Saving Changes..." : "Save Profile Details"}</span>
+                  <span>{saving ? t("saving_changes") : t("save_profile_details")}</span>
                 </button>
               </div>
             </form>

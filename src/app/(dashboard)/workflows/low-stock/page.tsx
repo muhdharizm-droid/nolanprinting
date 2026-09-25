@@ -235,8 +235,8 @@ export default function LowStockWorkflowPage() {
         type: "success",
         text:
           actionModal.type === "receive_stock"
-            ? `Stock received! Added ${actionModal.receivedQty || actionModal.workflow.suggestedQty} units to inventory.`
-            : `Workflow advanced successfully.`,
+            ? t("stock_received_success")
+            : t("workflow_advanced_success"),
       });
       setTimeout(() => setStatusMessage(null), 4000);
 
@@ -293,13 +293,13 @@ export default function LowStockWorkflowPage() {
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-blue-200 border border-white/10 mb-1.5">
                 <Boxes className="w-3.5 h-3.5" />
-                <span>Automated Workflow #1</span>
+                <span>{t("workflow_1")}</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                Low-Stock Alert & Reordering Pipeline
+                {t("reorder_pipeline")}
               </h1>
               <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-xl">
-                Automatic threshold breach detection, WhatsApp & formal PO generation, in-transit tracking, and one-click intake restock.
+                {t("pipeline_subtitle")}
               </p>
             </div>
           </div>
@@ -310,7 +310,7 @@ export default function LowStockWorkflowPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs font-semibold rounded-xl backdrop-blur-md border border-white/10 transition cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              <span>Refresh Pipeline</span>
+              <span>{t("refresh_pipeline")}</span>
             </button>
           </div>
         </div>
@@ -342,14 +342,14 @@ export default function LowStockWorkflowPage() {
           }`}
         >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">1. Alerts Triggered</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">1. {t("alerts_triggered")}</span>
             <AlertTriangle className="w-4 h-4 text-rose-500" />
           </div>
           <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
             {triggeredItems.length}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            Needs purchase order / reorder
+            {t("needs_reorder_sub")}
           </span>
         </div>
 
@@ -363,14 +363,14 @@ export default function LowStockWorkflowPage() {
           }`}
         >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">2. PO Issued</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">2. {t("po_issued")}</span>
             <FileText className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
             {poIssuedItems.length}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            Sent to supplier for fulfillment
+            {t("sent_to_supplier")}
           </span>
         </div>
 
@@ -384,14 +384,14 @@ export default function LowStockWorkflowPage() {
           }`}
         >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">3. In Transit</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">3. {t("in_transit")}</span>
             <Truck className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
             {inTransitItems.length}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            Dispatched & awaiting delivery
+            {t("in_transit_sub")}
           </span>
         </div>
 
@@ -405,14 +405,14 @@ export default function LowStockWorkflowPage() {
           }`}
         >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">4. Restocked</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">4. {t("restocked")}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
             {resolvedWorkflows.length}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            Completed restocks & intake logs
+            {t("restocked_sub")}
           </span>
         </div>
       </div>
@@ -429,7 +429,7 @@ export default function LowStockWorkflowPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            🚨 Alerts ({triggeredItems.length})
+            {t("alerts_tab")} ({triggeredItems.length})
           </button>
 
           <button
@@ -440,7 +440,7 @@ export default function LowStockWorkflowPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            📋 PO Issued ({poIssuedItems.length})
+            {t("po_issued_tab")} ({poIssuedItems.length})
           </button>
 
           <button
@@ -451,7 +451,7 @@ export default function LowStockWorkflowPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            🚚 In Transit ({inTransitItems.length})
+            {t("in_transit_tab")} ({inTransitItems.length})
           </button>
 
           <button
@@ -462,7 +462,7 @@ export default function LowStockWorkflowPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            ✅ History ({resolvedWorkflows.length})
+            {t("history_tab")} ({resolvedWorkflows.length})
           </button>
         </div>
 
@@ -470,7 +470,7 @@ export default function LowStockWorkflowPage() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <input
             type="text"
-            placeholder="Search item, barcode, or PO#..."
+            placeholder={t("search_item_po")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -481,7 +481,7 @@ export default function LowStockWorkflowPage() {
             onChange={(e) => setSupplierFilter(e.target.value)}
             className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
           >
-            <option value="all">All Suppliers ({supplierList.length})</option>
+            <option value="all">{t("all_suppliers")} ({supplierList.length})</option>
             {supplierList.map((sup) => (
               <option key={sup.id} value={sup.id.toString()}>
                 {sup.name}
@@ -495,19 +495,19 @@ export default function LowStockWorkflowPage() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-400 text-xs">
-            Loading low-stock pipeline...
+            {t("loading_pipeline")}
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs flex flex-col items-center gap-3">
             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
             <div>
               <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                No items in this workflow stage
+                {t("no_workflow_items")}
               </p>
               <p className="text-[11px] text-slate-400 mt-1">
                 {activeTab === "triggered"
-                  ? "All active items are safely stocked above their minimum inventory threshold."
-                  : `No records currently matching '${activeTab.replace("_", " ")}'.`}
+                  ? t("all_items_safe")
+                  : `${t("no_matching_records")} '${activeTab.replace("_", " ")}'.`}
               </p>
             </div>
           </div>
@@ -516,14 +516,14 @@ export default function LowStockWorkflowPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-100 dark:border-slate-800">
                 <tr>
-                  <th className="p-3.5">Product & SKU</th>
-                  <th className="p-3.5">Assigned Supplier</th>
-                  <th className="p-3.5 text-center">Stock / Threshold</th>
-                  <th className="p-3.5 text-center">Suggested Order</th>
-                  {activeTab !== "triggered" && <th className="p-3.5">PO Number</th>}
-                  {activeTab === "in_transit" && <th className="p-3.5">Expected Delivery</th>}
-                  {activeTab === "received" && <th className="p-3.5">Restocked By</th>}
-                  <th className="p-3.5 text-right">Workflow Actions</th>
+                  <th className="p-3.5">{t("product_and_sku")}</th>
+                  <th className="p-3.5">{t("assigned_supplier")}</th>
+                  <th className="p-3.5 text-center">{t("stock_threshold")}</th>
+                  <th className="p-3.5 text-center">{t("suggested_order")}</th>
+                  {activeTab !== "triggered" && <th className="p-3.5">{t("po_number")}</th>}
+                  {activeTab === "in_transit" && <th className="p-3.5">{t("expected_delivery")}</th>}
+                  {activeTab === "received" && <th className="p-3.5">{t("restocked_by")}</th>}
+                  <th className="p-3.5 text-right">{t("workflow_actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -549,7 +549,7 @@ export default function LowStockWorkflowPage() {
                             </span>
                           )}
                           {item.product.isRawMaterial && (
-                            <span className="text-emerald-600 font-bold">Paper/Supply</span>
+                            <span className="text-emerald-600 font-bold">{t("paper_supply_badge")}</span>
                           )}
                         </div>
                       </td>
@@ -569,7 +569,7 @@ export default function LowStockWorkflowPage() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-400 italic">Unassigned Supplier</span>
+                          <span className="text-slate-400 italic">{t("unassigned_supplier")}</span>
                         )}
                       </td>
 
@@ -582,10 +582,10 @@ export default function LowStockWorkflowPage() {
                               : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                           }`}
                         >
-                          {isOut ? "OUT OF STOCK (0)" : `${item.currentStock} left`}
+                          {isOut ? t("out_of_stock_count") : `${item.currentStock} ${t("left")}`}
                         </span>
                         <div className="text-[10px] text-slate-400 mt-0.5 font-medium">
-                          Min Level: {item.threshold}
+                          {t("min_level")}: {item.threshold}
                         </div>
                       </td>
 
@@ -595,7 +595,7 @@ export default function LowStockWorkflowPage() {
                           +{item.orderQty || item.suggestedQty}
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          {item.product.packSize > 1 ? `${item.product.packSize} pcs/pack` : "units"}
+                          {item.product.packSize > 1 ? `${item.product.packSize} ${t("pcs_per_pack")}` : t("units")}
                         </div>
                       </td>
 
@@ -619,7 +619,7 @@ export default function LowStockWorkflowPage() {
                       {/* Expected Date if in transit */}
                       {activeTab === "in_transit" && (
                         <td className="p-3.5 text-slate-600 dark:text-slate-300 font-medium">
-                          {item.expectedDate ? formatDate(item.expectedDate) : "Pending dispatch"}
+                          {item.expectedDate ? formatDate(item.expectedDate) : t("pending_dispatch")}
                         </td>
                       )}
 
@@ -627,7 +627,7 @@ export default function LowStockWorkflowPage() {
                       {activeTab === "received" && (
                         <td className="p-3.5 text-slate-600 dark:text-slate-300">
                           <div className="font-semibold text-slate-800 dark:text-white">
-                            {item.resolvedBy?.fullName || "Staff"}
+                            {item.resolvedBy?.fullName || t("staff_label")}
                           </div>
                           <div className="text-[10px] text-slate-400">{formatDate(item.updatedAt)}</div>
                         </td>
@@ -667,7 +667,7 @@ export default function LowStockWorkflowPage() {
                                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition cursor-pointer"
                               >
                                 <FileText className="w-3.5 h-3.5" />
-                                <span>Issue PO</span>
+                                <span>{t("issue_po")}</span>
                               </button>
                             </>
                           )}
@@ -695,7 +695,7 @@ export default function LowStockWorkflowPage() {
                                 className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-md shadow-amber-500/20 transition cursor-pointer"
                               >
                                 <Truck className="w-3.5 h-3.5" />
-                                <span>Mark In Transit</span>
+                                <span>{t("mark_in_transit")}</span>
                               </button>
                             </>
                           )}
@@ -712,14 +712,14 @@ export default function LowStockWorkflowPage() {
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer animate-pulse"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                              <span>Receive & Restock</span>
+                              <span>{t("receive_and_restock")}</span>
                             </button>
                           )}
 
                           {activeTab === "received" && (
                             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Restocked</span>
+                              <span>{t("restocked")}</span>
                             </span>
                           )}
                         </div>
@@ -743,9 +743,9 @@ export default function LowStockWorkflowPage() {
                 {actionModal.type === "mark_in_transit" && <Truck className="w-4 h-4 text-amber-500" />}
                 {actionModal.type === "receive_stock" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 <h3 className="font-bold text-sm text-slate-800 dark:text-white">
-                  {actionModal.type === "issue_po" && "Issue Purchase Order (PO)"}
-                  {actionModal.type === "mark_in_transit" && "Confirm Order In Transit"}
-                  {actionModal.type === "receive_stock" && "Confirm Stock Delivery & Intake"}
+                  {actionModal.type === "issue_po" && t("issue_po_title")}
+                  {actionModal.type === "mark_in_transit" && t("confirm_in_transit")}
+                  {actionModal.type === "receive_stock" && t("confirm_stock_delivery")}
                 </h3>
               </div>
               <button
@@ -758,13 +758,13 @@ export default function LowStockWorkflowPage() {
 
             <form onSubmit={handleActionSubmit} className="p-5 space-y-4 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-                <span className="text-[10px] text-slate-400 uppercase font-bold">Selected Item:</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold">{t("selected_item")}</span>
                 <div className="font-bold text-slate-900 dark:text-white text-sm">
                   {actionModal.workflow.product.name}
                 </div>
                 <div className="flex items-center justify-between text-slate-500 mt-1">
-                  <span>Current Stock: {actionModal.workflow.currentStock}</span>
-                  <span>Threshold: {actionModal.workflow.threshold}</span>
+                  <span>{t("current_stock_label")} {actionModal.workflow.currentStock}</span>
+                  <span>{t("threshold_label")} {actionModal.workflow.threshold}</span>
                 </div>
               </div>
 
@@ -773,7 +773,7 @@ export default function LowStockWorkflowPage() {
                 <>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Order Quantity (Recommended: {actionModal.workflow.suggestedQty})
+                      {t("order_quantity")} ({t("recommended")} {actionModal.workflow.suggestedQty})
                     </label>
                     <input
                       type="number"
@@ -789,7 +789,7 @@ export default function LowStockWorkflowPage() {
 
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Expected Delivery Date
+                      {t("expected_delivery_date")}
                     </label>
                     <input
                       type="date"
@@ -807,7 +807,7 @@ export default function LowStockWorkflowPage() {
               {actionModal.type === "mark_in_transit" && (
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Expected Arrival Date
+                    {t("expected_arrival_date")}
                   </label>
                   <input
                     type="date"
@@ -824,7 +824,7 @@ export default function LowStockWorkflowPage() {
               {actionModal.type === "receive_stock" && (
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Units Received & Inspected
+                    {t("units_received_inspected")}
                   </label>
                   <input
                     type="number"
@@ -840,7 +840,7 @@ export default function LowStockWorkflowPage() {
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-black text-sm"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">
-                    This will automatically increase product inventory stock and record an official stock intake audit log.
+                    {t("stock_intake_notice")}
                   </p>
                 </div>
               )}
@@ -848,11 +848,11 @@ export default function LowStockWorkflowPage() {
               {/* Notes */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Workflow Notes / Logistics Reference
+                  {t("workflow_notes_logistics")}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Courier tracking # or supplier verbal confirmation"
+                  placeholder={t("logistics_placeholder")}
                   value={actionModal.notes || ""}
                   onChange={(e) => setActionModal({ ...actionModal, notes: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
@@ -865,7 +865,7 @@ export default function LowStockWorkflowPage() {
                   onClick={() => setActionModal(null)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-semibold hover:bg-slate-200"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
@@ -878,7 +878,7 @@ export default function LowStockWorkflowPage() {
                       : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
                   }`}
                 >
-                  {actionLoading ? "Processing..." : "Confirm Action"}
+                  {actionLoading ? t("processing") : t("confirm_action")}
                 </button>
               </div>
             </form>

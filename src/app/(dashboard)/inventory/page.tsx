@@ -32,6 +32,7 @@ import {
 import * as XLSX from "xlsx";
 import JsBarcode from "jsbarcode";
 import { useI18n } from "@/lib/i18n/context";
+import { translateCategory, translateUsageReason } from "@/lib/i18n/translations";
 import { formatMYR, formatDate } from "@/lib/utils";
 import StockIntakeReportView from "@/components/StockIntakeReportView";
 
@@ -58,7 +59,7 @@ interface Product {
 }
 
 export default function InventoryPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -468,11 +469,11 @@ export default function InventoryPage() {
               {loading && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 animate-pulse">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
-                  Syncing...
+                  {t("syncing")}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Track stock levels, intake batches, barcodes, and pricing</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t("track_stock_subtitle")}</p>
           </div>
         </div>
 
@@ -482,7 +483,7 @@ export default function InventoryPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
           >
             <BarChart3 className="w-4 h-4" />
-            <span>Intake Report</span>
+            <span>{t("intake_report")}</span>
           </button>
 
           <button
@@ -490,7 +491,7 @@ export default function InventoryPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
           >
             <History className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            <span>Usage History</span>
+            <span>{t("usage_history")}</span>
           </button>
 
           <button
@@ -498,7 +499,7 @@ export default function InventoryPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition"
           >
             <MinusCircle className="w-4 h-4" />
-            <span>Record Usage</span>
+            <span>{t("record_usage")}</span>
           </button>
 
           <button
@@ -544,7 +545,7 @@ export default function InventoryPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            All Active ({products.filter((p) => p.status === "active").length})
+            {t("all_active")} ({products.filter((p) => p.status === "active").length})
           </button>
           <button
             onClick={() => setActiveTab("retail")}
@@ -555,7 +556,7 @@ export default function InventoryPage() {
             }`}
           >
             <Boxes className="w-3.5 h-3.5" />
-            <span>Retail Products ({products.filter((p) => p.status === "active" && !p.isService && !p.isRawMaterial).length})</span>
+            <span>{t("retail_products")} ({products.filter((p) => p.status === "active" && !p.isService && !p.isRawMaterial).length})</span>
           </button>
           <button
             onClick={() => setActiveTab("raw_material")}
@@ -566,7 +567,7 @@ export default function InventoryPage() {
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Paper & Supplies ({products.filter((p) => p.status === "active" && p.isRawMaterial).length})</span>
+            <span>{t("paper_supplies")} ({products.filter((p) => p.status === "active" && p.isRawMaterial).length})</span>
           </button>
           <button
             onClick={() => setActiveTab("service")}
@@ -577,7 +578,7 @@ export default function InventoryPage() {
             }`}
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Services ({products.filter((p) => p.status === "active" && p.isService).length})</span>
+            <span>{t("services")} ({products.filter((p) => p.status === "active" && p.isService).length})</span>
           </button>
           <button
             onClick={() => setActiveTab("low_stock")}
@@ -588,7 +589,7 @@ export default function InventoryPage() {
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Low Stock ({products.filter((p) => p.status === "active" && !p.isService && p.stock <= p.threshold).length})</span>
+            <span>{t("low_stock")} ({products.filter((p) => p.status === "active" && !p.isService && p.stock <= p.threshold).length})</span>
           </button>
           <button
             onClick={() => setActiveTab("archived")}
@@ -598,7 +599,7 @@ export default function InventoryPage() {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            Archived ({products.filter((p) => p.status === "archived").length})
+            {t("archived")} ({products.filter((p) => p.status === "archived").length})
           </button>
         </div>
 
@@ -608,7 +609,7 @@ export default function InventoryPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
-              placeholder="Search product or SKU..."
+              placeholder={t("search_product_sku")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none"
@@ -620,10 +621,10 @@ export default function InventoryPage() {
             onChange={(e) => setSelectedCat(e.target.value)}
             className="p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none"
           >
-            <option value="all">All Categories</option>
+            <option value="all">{t("all_categories")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id.toString()}>
-                {c.name}
+                {translateCategory(c.name, language)}
               </option>
             ))}
           </select>
@@ -639,10 +640,13 @@ export default function InventoryPage() {
             </div>
             <div>
               <h4 className="font-bold text-amber-950 dark:text-amber-200">
-                Low-Stock Reordering & PO Pipeline
+                {t("reorder_pipeline")}
               </h4>
               <p className="text-amber-800 dark:text-amber-300 text-[11px] mt-0.5">
-                {products.filter((p) => p.status === "active" && !p.isService && p.stock <= p.threshold).length} items require reordering. Issue purchase orders, send WhatsApp requests to suppliers, and track deliveries.
+                {products.filter((p) => p.status === "active" && !p.isService && p.stock <= p.threshold).length}{" "}
+                {language === "ms"
+                  ? "item perlu dipesan semula. Keluarkan pesanan belian (PO), hubungi pembekal melalui WhatsApp, dan jejak penghantaran."
+                  : "items require reordering. Issue purchase orders, send WhatsApp requests to suppliers, and track deliveries."}
               </p>
             </div>
           </div>
@@ -651,7 +655,7 @@ export default function InventoryPage() {
             href="/workflows/low-stock"
             className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-xl shadow-md shadow-amber-600/20 transition shrink-0 text-center"
           >
-            <span>Open Reorder Pipeline</span>
+            <span>{t("open_reorder_pipeline")}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -666,7 +670,7 @@ export default function InventoryPage() {
                 <th className="p-3.5">{t("barcode")}</th>
                 <th className="p-3.5">{t("product_name")}</th>
                 <th className="p-3.5">{t("category")}</th>
-                <th className="p-3.5 text-center">Classification</th>
+                <th className="p-3.5 text-center">{t("classification")}</th>
                 <th className="p-3.5 text-right">{t("selling_price")}</th>
                 <th className="p-3.5 text-right">{t("cost_price")}</th>
                 <th className="p-3.5 text-center">{t("stock_level")}</th>
@@ -713,7 +717,9 @@ export default function InventoryPage() {
               ) : filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
-                    No products found matching your filter criteria.
+                    {language === "ms"
+                      ? "Tiada produk ditemui mengikut kriteria penapis anda."
+                      : "No products found matching your filter criteria."}
                   </td>
                 </tr>
               ) : (
@@ -745,7 +751,11 @@ export default function InventoryPage() {
 
                       {/* Category */}
                       <td className="p-3.5 text-slate-600 dark:text-slate-400">
-                        {p.category?.name || <span className="text-slate-300 dark:text-slate-600">-</span>}
+                        {p.category?.name ? (
+                          translateCategory(p.category.name, language)
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-600">-</span>
+                        )}
                       </td>
 
                       {/* Classification Type */}
@@ -753,17 +763,17 @@ export default function InventoryPage() {
                         {p.isRawMaterial ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                             <FileText className="w-3 h-3" />
-                            <span>Paper / Supply</span>
+                            <span>{t("paper_supply")}</span>
                           </span>
                         ) : p.isService ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                             <Printer className="w-3 h-3" />
-                            <span>Print Service</span>
+                            <span>{t("print_service")}</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             <Boxes className="w-3 h-3" />
-                            <span>Retail</span>
+                            <span>{t("retail_products")}</span>
                           </span>
                         )}
                       </td>
@@ -772,11 +782,11 @@ export default function InventoryPage() {
                       <td className="p-3.5 text-right font-bold text-slate-900 dark:text-white">
                         {p.isRawMaterial ? (
                           <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 italic">
-                            Internal Use
+                            {t("internal_use")}
                           </span>
                         ) : p.isService ? (
                           <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                            Calculator
+                            {t("calculator")}
                           </span>
                         ) : (
                           formatMYR(p.price)
@@ -791,7 +801,7 @@ export default function InventoryPage() {
                       {/* Current Stock */}
                       <td className="p-3.5 text-center">
                         {p.isService ? (
-                          <span className="text-slate-400 dark:text-slate-500 font-medium">Unlimited</span>
+                          <span className="text-slate-400 dark:text-slate-500 font-medium">{t("unlimited")}</span>
                         ) : p.isRawMaterial ? (
                           <div className="flex flex-col items-center gap-1">
                             <span
@@ -803,15 +813,15 @@ export default function InventoryPage() {
                                   : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
                               }`}
                             >
-                              {p.stock} pkgs / reams
+                              {p.stock} {t("pkgs_reams")}
                             </span>
                             {p.looseStock > 0 ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                                📄 +{p.looseStock} in tray
+                                📄 +{p.looseStock} {t("in_tray")}
                               </span>
                             ) : (
                               <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                                0 loose in tray
+                                0 {t("loose_in_tray")}
                               </span>
                             )}
                           </div>
@@ -825,14 +835,14 @@ export default function InventoryPage() {
                                 : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
                             }`}
                           >
-                            {p.stock} units
+                            {p.stock} {t("units")}
                           </span>
                         )}
                       </td>
 
                       {/* Low Stock Alert Threshold */}
                       <td className="p-3.5 text-center text-slate-500 dark:text-slate-400 font-medium">
-                        {p.isService ? "-" : `${p.threshold} units`}
+                        {p.isService ? "-" : `${p.threshold} ${t("units")}`}
                       </td>
 
                       {/* Actions */}
@@ -846,7 +856,7 @@ export default function InventoryPage() {
                                     setIntakeProduct(p);
                                     setIntakeQty(10);
                                   }}
-                                  title="Quick Stock Intake (+)"
+                                  title={t("add_stock")}
                                   className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition"
                                 >
                                   <ArrowDownToLine className="w-4 h-4" />
@@ -855,7 +865,7 @@ export default function InventoryPage() {
                               {p.isRawMaterial && (
                                 <button
                                   onClick={() => openUsageModal(p)}
-                                  title="Record Usage / Keluar ke Mesin (-)"
+                                  title={t("record_usage")}
                                   className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition"
                                 >
                                   <MinusCircle className="w-4 h-4" />
@@ -863,14 +873,14 @@ export default function InventoryPage() {
                               )}
                               <button
                                 onClick={() => openEditModal(p)}
-                                title="Edit Product"
+                                title={t("edit_product")}
                                 className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => openDeleteModal(p)}
-                                title="Delete Product"
+                                title={t("delete_product")}
                                 className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -880,7 +890,7 @@ export default function InventoryPage() {
                             <>
                               <button
                                 onClick={() => handleRestore(p)}
-                                title="Restore Product"
+                                title={t("restore")}
                                 className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition flex items-center gap-1 font-semibold text-[11px]"
                               >
                                 <RotateCcw className="w-3.5 h-3.5" />
@@ -888,7 +898,7 @@ export default function InventoryPage() {
                               </button>
                               <button
                                 onClick={() => openDeleteModal(p)}
-                                title="Purge Permanently"
+                                title={t("permanent_delete")}
                                 className="p-1.5 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -956,10 +966,10 @@ export default function InventoryPage() {
                     onChange={(e) => setFormCategory(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
                   >
-                    <option value="">None / Uncategorized</option>
+                    <option value="">{language === "ms" ? "Tiada / Tanpa Kategori" : "None / Uncategorized"}</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id.toString()}>
-                        {c.name}
+                        {translateCategory(c.name, language)}
                       </option>
                     ))}
                   </select>
@@ -969,7 +979,7 @@ export default function InventoryPage() {
               {/* Item Classification Selector */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Item Classification *
+                  {t("classification")} *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
@@ -983,10 +993,10 @@ export default function InventoryPage() {
                   >
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <Boxes className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span>Retail Merchandise</span>
+                      <span>{t("retail_merchandise")}</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
-                      Sold directly at POS register (Stationery, pens, merchandise)
+                      {t("retail_merchandise_desc")}
                     </p>
                   </button>
 
@@ -1005,10 +1015,10 @@ export default function InventoryPage() {
                   >
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span>Paper & Supply</span>
+                      <span>{t("paper_supply")}</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
-                      Papers, toners & raw materials — <strong>not sold in POS</strong>
+                      {t("paper_supply_desc")}
                     </p>
                   </button>
 
@@ -1023,10 +1033,10 @@ export default function InventoryPage() {
                   >
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <Printer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      <span>Print Service</span>
+                      <span>{t("print_service")}</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
-                      Custom print / copy work (calculated at POS)
+                      {t("print_service_desc")}
                     </p>
                   </button>
                 </div>
@@ -1037,7 +1047,10 @@ export default function InventoryPage() {
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2">
                   <Info className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
                   <span>
-                    <strong>Internal Store Inventory:</strong> This item (e.g. A4 70gsm, A4 80gsm Double A reams, art cards, laminate film) will be tracked for stock count, batches, and reorder alerts, but will <strong>NOT be involved in POS sales transactions</strong>.
+                    <strong>{language === "ms" ? "Inventori Kedai Dalaman:" : "Internal Store Inventory:"}</strong>{" "}
+                    {language === "ms"
+                      ? "Item ini (cth. A4 70gsm, A4 80gsm Double A, kad seni, filem laminasi) akan dijejak paras stok, kelompok, dan amaran pesanan semula, tetapi TIDAK akan terlibat dalam jualan terus POS."
+                      : "This item (e.g. A4 70gsm, A4 80gsm Double A reams, art cards, laminate film) will be tracked for stock count, batches, and reorder alerts, but will NOT be involved in POS sales transactions."}
                   </span>
                 </div>
               )}
@@ -1047,7 +1060,7 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Unit Cost Price (RM) *
+                      {language === "ms" ? "Harga Kos Unit (RM) *" : "Unit Cost Price (RM) *"}
                     </label>
                     <input
                       type="number"
@@ -1055,29 +1068,33 @@ export default function InventoryPage() {
                       required
                       value={formCostPrice}
                       onChange={(e) => setFormCostPrice(e.target.value)}
-                      placeholder="e.g. 11.50 per ream"
+                      placeholder={language === "ms" ? "cth. 11.50 per rim" : "e.g. 11.50 per ream"}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Purchase cost from paper distributor</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {language === "ms" ? "Kos belian daripada pembekal" : "Purchase cost from paper distributor"}
+                    </span>
                   </div>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      POS Selling Price
+                      {language === "ms" ? "Harga Jualan POS" : "POS Selling Price"}
                     </label>
                     <input
                       type="text"
                       disabled
-                      value="N/A (Internal Material)"
+                      value={language === "ms" ? "N/A (Bahan Dalaman)" : "N/A (Internal Material)"}
                       className="w-full p-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-400 cursor-not-allowed"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Excluded from POS transactions</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {language === "ms" ? "Dikecualikan daripada transaksi POS" : "Excluded from POS transactions"}
+                    </span>
                   </div>
                 </div>
               ) : formItemType === "service" ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Base Rate / Unit (RM)
+                      {language === "ms" ? "Kadar Asas / Unit (RM)" : "Base Rate / Unit (RM)"}
                     </label>
                     <input
                       type="number"
@@ -1087,7 +1104,9 @@ export default function InventoryPage() {
                       placeholder="0.00"
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Pricing matrix applied at POS</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {language === "ms" ? "Matriks kadar diguna pakai di POS" : "Pricing matrix applied at POS"}
+                    </span>
                   </div>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("cost_price")}</label>
@@ -1134,7 +1153,9 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      {formItemType === "raw_material" ? "Current Stock (Reams / Packs / Units)" : "Initial Stock Count"} *
+                      {formItemType === "raw_material"
+                        ? (language === "ms" ? "Stok Semasa (Rim / Pek / Unit) *" : "Current Stock (Reams / Packs / Units) *")
+                        : (language === "ms" ? "Kiraan Stok Awal *" : "Initial Stock Count *")}
                     </label>
                     <input
                       type="number"
@@ -1152,7 +1173,9 @@ export default function InventoryPage() {
                       onChange={(e) => setFormThreshold(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Trigger restock alert below this</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {language === "ms" ? "Amaran stok dicetuskan di bawah nilai ini" : "Trigger restock alert below this"}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1162,7 +1185,7 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Pack Capacity (Sheets/Units) *
+                      {language === "ms" ? "Kapasiti Pek (Helaian/Unit) *" : "Pack Capacity (Sheets/Units) *"}
                     </label>
                     <input
                       type="number"
@@ -1170,14 +1193,16 @@ export default function InventoryPage() {
                       min="1"
                       value={formPackSize}
                       onChange={(e) => setFormPackSize(e.target.value)}
-                      placeholder="e.g. 500 for ream, 100 for pack"
+                      placeholder={language === "ms" ? "cth. 500 untuk rim, 100 untuk pek" : "e.g. 500 for ream, 100 for pack"}
                       className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">e.g. 500 sheets/ream</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {language === "ms" ? "cth. 500 helaian/rim" : "e.g. 500 sheets/ream"}
+                    </span>
                   </div>
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Loose Units in Machine Tray
+                      {language === "ms" ? "Helaian dalam Dulang Mesin" : "Loose Units in Machine Tray"}
                     </label>
                     <input
                       type="number"
@@ -1187,7 +1212,9 @@ export default function InventoryPage() {
                       placeholder="0"
                       className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Individual sheets loaded in tray</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {language === "ms" ? "Helaian individu dimasukkan ke dulang" : "Individual sheets loaded in tray"}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1199,7 +1226,7 @@ export default function InventoryPage() {
                   onChange={(e) => setFormSupplier(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
                 >
-                  <option value="">None / Direct</option>
+                  <option value="">{language === "ms" ? "Tiada / Terus" : "None / Direct"}</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id.toString()}>
                       {s.name}
@@ -1242,13 +1269,17 @@ export default function InventoryPage() {
 
             <form onSubmit={handleIntakeSubmit} className="p-6 space-y-4 text-xs">
               <div>
-                <span className="text-slate-400 dark:text-slate-500 block mb-0.5">Product:</span>
+                <span className="text-slate-400 dark:text-slate-500 block mb-0.5">
+                  {language === "ms" ? "Produk:" : "Product:"}
+                </span>
                 <span className="text-sm font-bold text-slate-900 dark:text-white">{intakeProduct.name}</span>
-                <span className="block text-slate-500 dark:text-slate-400 mt-1">Current Stock: {intakeProduct.stock} units</span>
+                <span className="block text-slate-500 dark:text-slate-400 mt-1">
+                  {language === "ms" ? "Stok Semasa:" : "Current Stock:"} {intakeProduct.stock} {t("units")}
+                </span>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Units to Add</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("units_to_add")}</label>
                 <input
                   type="number"
                   min="1"
@@ -1271,7 +1302,7 @@ export default function InventoryPage() {
                   type="submit"
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20"
                 >
-                  Confirm Intake
+                  {t("confirm_intake")}
                 </button>
               </div>
             </form>
@@ -1305,13 +1336,13 @@ export default function InventoryPage() {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Print Label</span>
+                  <span>{t("print_label")}</span>
                 </button>
                 <button
                   onClick={() => setBarcodeModalProduct(null)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl"
                 >
-                  Close
+                  {t("close")}
                 </button>
               </div>
             </div>
@@ -1329,7 +1360,7 @@ export default function InventoryPage() {
 
             <div className="text-center">
               <h3 className="font-bold text-base text-slate-800 dark:text-white">
-                Delete Product
+                {t("delete_product")}
               </h3>
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-1">
                 {deletingProduct.name}
@@ -1339,14 +1370,20 @@ export default function InventoryPage() {
                 <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-left">
                   <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
                     <strong className="block font-bold mb-1">
-                      ℹ️ Sales History Protected ({deletingProduct._count?.saleItems} sale{(deletingProduct._count?.saleItems || 0) > 1 ? "s" : ""})
+                      {language === "ms" ? "ℹ️ Sejarah Jualan Dilindungi" : "ℹ️ Sales History Protected"} ({deletingProduct._count?.saleItems} {language === "ms" ? "jualan" : "sales"})
                     </strong>
-                    This product will be removed from your active catalog and POS register. All historical receipts, customer invoices, and financial reports will remain 100% intact.
+                    {language === "ms"
+                      ? "Produk ini akan dialih keluar daripada katalog aktif dan daftar POS anda. Semua resit sejarah, invois pelanggan, dan laporan kewangan akan kekal 100% utuh."
+                      : "This product will be removed from your active catalog and POS register. All historical receipts, customer invoices, and financial reports will remain 100% intact."}
                   </p>
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                  This product has <strong>0 sales history</strong>. It will be completely and permanently erased from the database.
+                  {language === "ms" ? (
+                    <>Produk ini mempunyai <strong>0 sejarah jualan</strong>. Ia akan dipadamkan secara kekal daripada pangkalan data.</>
+                  ) : (
+                    <>This product has <strong>0 sales history</strong>. It will be completely and permanently erased from the database.</>
+                  )}
                 </p>
               )}
             </div>
@@ -1365,7 +1402,9 @@ export default function InventoryPage() {
                 onClick={handleConfirmDelete}
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 transition disabled:opacity-50"
               >
-                {deleteLoading ? "Deleting..." : "Yes, Delete Product"}
+                {deleteLoading
+                  ? (language === "ms" ? "Memadamkan..." : "Deleting...")
+                  : t("yes_delete_product")}
               </button>
             </div>
           </div>
@@ -1382,8 +1421,8 @@ export default function InventoryPage() {
                   <MinusCircle className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">Record Stock Usage / Floor Issue</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Log supplies loaded to printer or shop consumption</p>
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("record_stock_usage_title")}</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">{t("record_stock_usage_subtitle")}</p>
                 </div>
               </div>
               <button onClick={() => setUsageModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -1395,7 +1434,7 @@ export default function InventoryPage() {
               {/* Product Selector */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Item / Material *
+                  {t("item_material")} *
                 </label>
                 <select
                   value={usageProduct.id}
@@ -1418,13 +1457,21 @@ export default function InventoryPage() {
               {/* Current Stock Breakdown Badge */}
               <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">Current Stock on Shelf:</span>
-                  <span className="font-black text-amber-900 dark:text-amber-200">{usageProduct.stock} packages</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">
+                    {t("current_stock_on_shelf")}
+                  </span>
+                  <span className="font-black text-amber-900 dark:text-amber-200">
+                    {usageProduct.stock} {t("pkgs_reams")}
+                  </span>
                 </div>
                 {usageProduct.isRawMaterial && (
                   <div className="text-right">
-                    <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">Loose in Tray:</span>
-                    <span className="font-black text-emerald-700 dark:text-emerald-400">+{usageProduct.looseStock || 0} sheets</span>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">
+                      {t("loose_in_tray_label")}
+                    </span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-400">
+                      +{usageProduct.looseStock || 0} {t("sheets")}
+                    </span>
                   </div>
                 )}
               </div>
@@ -1433,7 +1480,7 @@ export default function InventoryPage() {
               {usageProduct.isRawMaterial && (
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Usage Unit *
+                    {t("usage_unit")} *
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -1445,9 +1492,11 @@ export default function InventoryPage() {
                           : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                       }`}
                     >
-                      <span className="font-bold text-xs">Full Package / Ream</span>
+                      <span className="font-bold text-xs">{t("full_package_ream")}</span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Opens {usageProduct.packSize || 1} units to tray
+                        {language === "ms"
+                          ? `Membuka ${usageProduct.packSize || 1} unit ke dulang`
+                          : `Opens ${usageProduct.packSize || 1} units to tray`}
                       </span>
                     </button>
                     <button
@@ -1459,9 +1508,9 @@ export default function InventoryPage() {
                           : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                       }`}
                     >
-                      <span className="font-bold text-xs">Individual Loose Units</span>
+                      <span className="font-bold text-xs">{t("individual_loose_units")}</span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Deducts single sheets/pieces
+                        {language === "ms" ? "Menolak helaian/kepingan tunggal" : "Deducts single sheets/pieces"}
                       </span>
                     </button>
                   </div>
@@ -1471,7 +1520,7 @@ export default function InventoryPage() {
               {/* Quantity */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Quantity to Deduct ({usageUnitType === "package" ? "Package / Ream" : "Loose Sheets"}) *
+                  {t("quantity_to_deduct")} ({usageUnitType === "package" ? t("full_package_ream") : t("individual_loose_units")}) *
                 </label>
                 <input
                   type="number"
@@ -1486,31 +1535,31 @@ export default function InventoryPage() {
               {/* Reason */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Reason for Usage *
+                  {t("reason_for_usage")} *
                 </label>
                 <select
                   value={usageReason}
                   onChange={(e) => setUsageReason(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
                 >
-                  <option value="Loaded to Printer / Copier Tray">🖨️ Loaded to Printer / Copier Tray</option>
-                  <option value="Paper Jam / Machine Spoilage">⚠️ Paper Jam / Machine Spoilage</option>
-                  <option value="Test Prints / Calibration">🧪 Test Prints / Machine Calibration</option>
-                  <option value="Internal Shop Use">🏢 Internal Shop Use (Invoices, Documents)</option>
-                  <option value="Damaged / Wet Stock">❌ Damaged / Wet Stock (Discarded)</option>
+                  <option value="Loaded to Printer / Copier Tray">{translateUsageReason("Loaded to Printer / Copier Tray", language)}</option>
+                  <option value="Paper Jam / Machine Spoilage">{translateUsageReason("Paper Jam / Machine Spoilage", language)}</option>
+                  <option value="Test Prints / Calibration">{translateUsageReason("Test Prints / Calibration", language)}</option>
+                  <option value="Internal Shop Use">{translateUsageReason("Internal Shop Use", language)}</option>
+                  <option value="Damaged / Wet Stock">{translateUsageReason("Damaged / Wet Stock", language)}</option>
                 </select>
               </div>
 
               {/* Optional Notes */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Notes (Optional)
+                  {t("notes_optional")}
                 </label>
                 <input
                   type="text"
                   value={usageNotes}
                   onChange={(e) => setUsageNotes(e.target.value)}
-                  placeholder="e.g. Fuji Xerox Tray 1 or damaged box"
+                  placeholder={language === "ms" ? "cth. Fuji Xerox Dulang 1 atau kotak basah" : "e.g. Fuji Xerox Tray 1 or damaged box"}
                   className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none"
                 />
               </div>
@@ -1528,7 +1577,9 @@ export default function InventoryPage() {
                   disabled={usageLoading}
                   className="px-5 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-xl shadow-md shadow-amber-500/20 disabled:opacity-50"
                 >
-                  {usageLoading ? "Recording..." : "Confirm Stock Usage"}
+                  {usageLoading
+                    ? (language === "ms" ? "Merekodkan..." : "Recording...")
+                    : t("confirm_stock_usage")}
                 </button>
               </div>
             </form>
@@ -1546,8 +1597,8 @@ export default function InventoryPage() {
                   <History className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">Stock Usage & Outflow Audit Log</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Real-time log of paper consumption, machine tray loads, and POS orders</p>
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("stock_usage_audit_log")}</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">{t("stock_usage_audit_subtitle")}</p>
                 </div>
               </div>
               <button onClick={() => setHistoryModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -1557,27 +1608,31 @@ export default function InventoryPage() {
 
             <div className="p-5 overflow-y-auto flex-1 text-xs">
               {historyLoading ? (
-                <div className="p-10 text-center text-slate-400">Loading audit history...</div>
+                <div className="p-10 text-center text-slate-400">
+                  {language === "ms" ? "Memuatkan log audit..." : "Loading audit history..."}
+                </div>
               ) : usageHistory.length === 0 ? (
-                <div className="p-10 text-center text-slate-400">No stock usage recorded yet.</div>
+                <div className="p-10 text-center text-slate-400">
+                  {language === "ms" ? "Tiada rekod penggunaan stok lagi." : "No stock usage recorded yet."}
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                       <tr>
-                        <th className="p-3">Time</th>
-                        <th className="p-3">Item / Material</th>
-                        <th className="p-3 text-center">Quantity</th>
-                        <th className="p-3">Reason / Event</th>
-                        <th className="p-3">Logged By</th>
-                        <th className="p-3">Notes</th>
+                        <th className="p-3">{language === "ms" ? "Masa" : "Time"}</th>
+                        <th className="p-3">{t("item_material")}</th>
+                        <th className="p-3 text-center">{language === "ms" ? "Kuantiti" : "Quantity"}</th>
+                        <th className="p-3">{language === "ms" ? "Sebab / Peristiwa" : "Reason / Event"}</th>
+                        <th className="p-3">{language === "ms" ? "Direkod Oleh" : "Logged By"}</th>
+                        <th className="p-3">{language === "ms" ? "Nota" : "Notes"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {usageHistory.map((u) => {
                         const isAuto = u.reason.toLowerCase().includes("pos");
-                        const isLoad = u.reason.toLowerCase().includes("tray") || u.reason.toLowerCase().includes("printer");
-                        const isWaste = u.reason.toLowerCase().includes("jam") || u.reason.toLowerCase().includes("damage") || u.reason.toLowerCase().includes("spoilage");
+                        const isLoad = u.reason.toLowerCase().includes("tray") || u.reason.toLowerCase().includes("printer") || u.reason.toLowerCase().includes("dulang");
+                        const isWaste = u.reason.toLowerCase().includes("jam") || u.reason.toLowerCase().includes("damage") || u.reason.toLowerCase().includes("spoilage") || u.reason.toLowerCase().includes("rosak") || u.reason.toLowerCase().includes("tersangkut");
 
                         return (
                           <tr key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
@@ -1589,7 +1644,7 @@ export default function InventoryPage() {
                             </td>
                             <td className="p-3 text-center">
                               <span className="px-2 py-0.5 rounded-full font-bold text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
-                                {u.quantity} {u.unitType === "package" ? "pkg" : "sheets"}
+                                {u.quantity} {u.unitType === "package" ? (language === "ms" ? "pek" : "pkg") : (language === "ms" ? "helai" : "sheets")}
                               </span>
                             </td>
                             <td className="p-3">
@@ -1604,11 +1659,11 @@ export default function InventoryPage() {
                                     : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
                                 }`}
                               >
-                                {u.reason}
+                                {translateUsageReason(u.reason, language)}
                               </span>
                             </td>
                             <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
-                              {u.user?.fullName || u.user?.username || "Staff"}
+                              {u.user?.fullName || u.user?.username || (language === "ms" ? "Staf" : "Staff")}
                             </td>
                             <td className="p-3 text-slate-400 dark:text-slate-500 italic text-[11px]">
                               {u.notes || "-"}
@@ -1627,7 +1682,7 @@ export default function InventoryPage() {
                 onClick={() => setHistoryModalOpen(false)}
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs"
               >
-                Close
+                {t("close")}
               </button>
             </div>
           </div>
@@ -1645,10 +1700,10 @@ export default function InventoryPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-slate-800 dark:text-white">
-                    Stock Intake & Restock Analytics
+                    {t("stock_intake_analytics_title")}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Comprehensive visual report on stock arrivals, volumes, and material replenishment
+                    {t("stock_intake_analytics_subtitle")}
                   </p>
                 </div>
               </div>
@@ -1669,7 +1724,7 @@ export default function InventoryPage() {
                 onClick={() => setIntakeReportModalOpen(false)}
                 className="px-5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs transition"
               >
-                Close Report
+                {t("close_report")}
               </button>
             </div>
           </div>

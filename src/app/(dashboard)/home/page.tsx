@@ -45,7 +45,7 @@ interface HomeData {
 }
 
 export default function HomePage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,9 +55,16 @@ export default function HomePage() {
 
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting("Good morning");
-    else if (hour < 18) setGreeting("Good afternoon");
-    else setGreeting("Good evening");
+    if (language === "ms") {
+      if (hour < 12) setGreeting("Selamat pagi");
+      else if (hour < 14) setGreeting("Selamat tengah hari");
+      else if (hour < 19) setGreeting("Selamat petang");
+      else setGreeting("Selamat malam");
+    } else {
+      if (hour < 12) setGreeting("Good morning");
+      else if (hour < 18) setGreeting("Good afternoon");
+      else setGreeting("Good evening");
+    }
 
     async function loadHome() {
       try {
@@ -116,9 +123,9 @@ export default function HomePage() {
       }
     }
     loadHome();
-  }, []);
+  }, [language]);
 
-  const todayFormatted = new Date().toLocaleDateString("en-US", {
+  const todayFormatted = new Date().toLocaleDateString(language === "ms" ? "ms-MY" : "en-US", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -127,85 +134,85 @@ export default function HomePage() {
 
   const portalCards = [
     {
-      title: "Point of Sale (POS)",
-      desc: "Barcode scanner, custom print calculator, & thermal receipt printing",
+      title: language === "ms" ? "Sistem POS (Jualan)" : "Point of Sale (POS)",
+      desc: language === "ms" ? "Pengimbas kod bar, kalkulator cetakan khas & cetakan resit termal" : "Barcode scanner, custom print calculator, & thermal receipt printing",
       href: "/pos",
       icon: ShoppingCart,
       color: "from-blue-600 to-indigo-600",
       roles: ["owner", "cashier"],
-      badge: "Fast Checkout",
+      badge: language === "ms" ? "Daftar Keluar Pantas" : "Fast Checkout",
     },
     {
-      title: "Inventory & Stock",
-      desc: "Monitor inventory, intake batches, barcode labels, and low-stock alerts",
+      title: language === "ms" ? "Inventori & Stok" : "Inventory & Stock",
+      desc: language === "ms" ? "Pantau inventori, kemasukan kelompok, label kod bar & amaran stok rendah" : "Monitor inventory, intake batches, barcode labels, and low-stock alerts",
       href: "/inventory",
       icon: Boxes,
       color: "from-emerald-600 to-teal-600",
       roles: ["owner", "stock_handler"],
-      badge: data?.stats.lowStockCount ? `${data.stats.lowStockCount} Low` : undefined,
+      badge: data?.stats.lowStockCount ? (language === "ms" ? `${data.stats.lowStockCount} Rendah` : `${data.stats.lowStockCount} Low`) : undefined,
       badgeColor: "bg-amber-100 text-amber-800",
     },
     {
-      title: "Low-Stock Pipeline",
-      desc: "Automated reorder workflows, supplier PO generation, and delivery restock",
+      title: language === "ms" ? "Saluran Stok Rendah" : "Low-Stock Pipeline",
+      desc: language === "ms" ? "Aliran kerja pesanan semula automatik, penjanaan PO pembekal & penerimaan stok" : "Automated reorder workflows, supplier PO generation, and delivery restock",
       href: "/workflows/low-stock",
       icon: BellRing,
       color: "from-rose-600 to-orange-600",
       roles: ["owner", "stock_handler"],
-      badge: data?.stats.lowStockCount ? `${data.stats.lowStockCount} Alerts` : undefined,
+      badge: data?.stats.lowStockCount ? (language === "ms" ? `${data.stats.lowStockCount} Amaran` : `${data.stats.lowStockCount} Alerts`) : undefined,
       badgeColor: "bg-rose-100 text-rose-800",
     },
     {
-      title: "Transactions",
-      desc: "View customer receipts, payment methods, and void transactions",
+      title: t("transactions"),
+      desc: language === "ms" ? "Lihat resit pelanggan, kaedah pembayaran & batal transaksi" : "View customer receipts, payment methods, and void transactions",
       href: "/transactions",
       icon: Receipt,
       color: "from-cyan-600 to-blue-700",
       roles: ["owner"],
     },
     {
-      title: "Financial Dashboard",
-      desc: "P&L financial metrics, revenue trends, and category distribution",
+      title: language === "ms" ? "Papan Pemuka Kewangan" : "Financial Dashboard",
+      desc: language === "ms" ? "Metrik kewangan P&L, trend hasil & taburan kategori" : "P&L financial metrics, revenue trends, and category distribution",
       href: "/dashboard",
       icon: LayoutDashboard,
       color: "from-purple-600 to-indigo-700",
       roles: ["owner"],
     },
     {
-      title: "Categories",
-      desc: "Organize products into departments (Stationery, Banners, Printing)",
+      title: t("manage_categories"),
+      desc: language === "ms" ? "Susun produk mengikut bahagian (Alat Tulis, Banner, Percetakan)" : "Organize products into departments (Stationery, Banners, Printing)",
       href: "/categories",
       icon: FolderTree,
       color: "from-amber-600 to-orange-600",
       roles: ["owner", "stock_handler"],
     },
     {
-      title: "Suppliers",
-      desc: "Vendor directory for paper mills, ink suppliers, and raw materials",
+      title: t("suppliers"),
+      desc: language === "ms" ? "Direktori pembekal kilang kertas, pembekal dakwat & bahan mentah" : "Vendor directory for paper mills, ink suppliers, and raw materials",
       href: "/suppliers",
       icon: Truck,
       color: "from-rose-600 to-pink-600",
       roles: ["owner", "stock_handler"],
     },
     {
-      title: "Staff Accounts",
-      desc: "Manage team accounts, cashier permissions, and access credentials",
+      title: t("staff_accounts"),
+      desc: language === "ms" ? "Urus akaun staf, kebenaran juruwang & kelayakan akses" : "Manage team accounts, cashier permissions, and access credentials",
       href: "/staff",
       icon: Users,
       color: "from-blue-700 to-slate-800",
       roles: ["owner"],
     },
     {
-      title: "System Settings",
-      desc: "Store profile information, tax rates (SST), and receipt footer text",
+      title: t("settings"),
+      desc: language === "ms" ? "Maklumat profil kedai, kadar cukai (SST) & teks nota kaki resit" : "Store profile information, tax rates (SST), and receipt footer text",
       href: "/settings",
       icon: Settings,
       color: "from-slate-700 to-slate-900",
       roles: ["owner"],
     },
     {
-      title: "My Profile",
-      desc: "View personal details, employee credentials, and change password",
+      title: language === "ms" ? "Profil Saya" : "My Profile",
+      desc: language === "ms" ? "Lihat butiran peribadi, kelayakan pekerja & tukar kata laluan" : "View personal details, employee credentials, and change password",
       href: "/profile",
       icon: User,
       color: "from-indigo-600 to-violet-700",
@@ -304,7 +311,11 @@ export default function HomePage() {
                 {greeting}, {data?.user?.fullName || "Hariz"}!
               </h1>
               <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-xl">
-                Welcome to the <strong>Nolan Printing Services</strong> Management Hub. All systems and POS registers are operational.
+                {language === "ms" ? (
+                  <>Selamat datang ke Pusat Pengurusan <strong>Perkhidmatan Percetakan Nolan</strong>. Semua sistem dan daftar POS sedia beroperasi.</>
+                ) : (
+                  <>Welcome to the <strong>Nolan Printing Services</strong> Management Hub. All systems and POS registers are operational.</>
+                )}
               </p>
             </div>
           </div>
@@ -317,7 +328,7 @@ export default function HomePage() {
                 className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition"
               >
                 <ShoppingCart className="w-4 h-4" />
-                <span>Open POS Register</span>
+                <span>{language === "ms" ? "Buka Daftar POS" : "Open POS Register"}</span>
               </Link>
             )}
             {data?.user?.role !== "cashier" ? (
@@ -326,7 +337,7 @@ export default function HomePage() {
                 className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm font-semibold rounded-2xl backdrop-blur-md border border-white/10 transition"
               >
                 <Boxes className="w-4 h-4" />
-                <span>Inventory</span>
+                <span>{t("inventory")}</span>
               </Link>
             ) : (
               <Link
@@ -334,7 +345,7 @@ export default function HomePage() {
                 className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs sm:text-sm font-semibold rounded-2xl backdrop-blur-md border border-white/10 transition"
               >
                 <User className="w-4 h-4" />
-                <span>My Profile</span>
+                <span>{language === "ms" ? "Profil Saya" : "My Profile"}</span>
               </Link>
             )}
           </div>
@@ -349,27 +360,27 @@ export default function HomePage() {
             className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-blue-500 group"
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">POS Terminal</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Terminal POS" : "POS Terminal"}</span>
               <ShoppingCart className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-black text-blue-600">
-              Active Register
+              {language === "ms" ? "Daftar Aktif" : "Active Register"}
             </div>
             <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-              Ready for customer checkout &rarr;
+              {language === "ms" ? "Sedia untuk bayaran pelanggan →" : "Ready for customer checkout →"}
             </span>
           </Link>
 
           <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Role & Shift</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Peranan & Syif" : "Role & Shift"}</span>
               <Shield className="w-4 h-4 text-indigo-600" />
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white capitalize">
-              Cashier
+              {language === "ms" ? "Juruwang" : "Cashier"}
             </div>
             <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-              Session active (@{data?.user?.username})
+              {language === "ms" ? "Sesi aktif" : "Session active"} (@{data?.user?.username})
             </span>
           </div>
 
@@ -378,14 +389,14 @@ export default function HomePage() {
             className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-violet-500 group"
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">My Profile</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Profil Saya" : "My Profile"}</span>
               <User className="w-4 h-4 text-violet-600 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {data?.user?.fullName?.split(" ")[0] || "Profile"}
             </div>
             <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold mt-1 block">
-              View & edit personal details &rarr;
+              {language === "ms" ? "Lihat & sunting butiran peribadi →" : "View & edit personal details →"}
             </span>
           </Link>
         </div>
@@ -396,14 +407,14 @@ export default function HomePage() {
             className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-emerald-500 group"
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Active Products</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Produk Aktif" : "Active Products"}</span>
               <Boxes className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {data?.stats.totalProducts ?? 0}
             </div>
             <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-              Catalog inventory items &rarr;
+              {language === "ms" ? "Item inventori katalog →" : "Catalog inventory items →"}
             </span>
           </Link>
 
@@ -416,14 +427,14 @@ export default function HomePage() {
             }`}
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Stock Alerts</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{t("stock_alerts")}</span>
               <BellRing className="w-4 h-4 text-amber-500" />
             </div>
             <div className="text-2xl font-black text-amber-600">
-              {data?.stats.lowStockCount ?? 0} items
+              {data?.stats.lowStockCount ?? 0} {t("items_count")}
             </div>
             <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-1 block">
-              {data?.stats.lowStockCount ? "Manage reorders &rarr;" : "All healthy"}
+              {data?.stats.lowStockCount ? (language === "ms" ? "Urus pesanan semula →" : "Manage reorders →") : (language === "ms" ? "Semua mencukupi" : "All healthy")}
             </span>
           </Link>
 
@@ -432,14 +443,14 @@ export default function HomePage() {
             className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition hover:border-violet-500 group"
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">My Profile</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Profil Saya" : "My Profile"}</span>
               <User className="w-4 h-4 text-violet-600 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {data?.user?.fullName?.split(" ")[0] || "Profile"}
             </div>
             <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold mt-1 block">
-              View & edit personal details &rarr;
+              {language === "ms" ? "Lihat & sunting butiran peribadi →" : "View & edit personal details →"}
             </span>
           </Link>
         </div>
@@ -448,42 +459,42 @@ export default function HomePage() {
           {/* Today's Sales Count */}
           <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Today's Transactions</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Transaksi Hari Ini" : "Today's Transactions"}</span>
               <ShoppingCart className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {data?.stats.todaySalesCount ?? 0}
             </div>
             <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-              Completed today
+              {language === "ms" ? "Selesai hari ini" : "Completed today"}
             </span>
           </div>
 
           {/* Today's Revenue */}
           <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Today's Revenue</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Hasil Hari Ini" : "Today's Revenue"}</span>
               <DollarSign className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-2xl font-black text-emerald-600">
               {formatMYR(data?.stats.todayRevenue ?? 0)}
             </div>
             <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-              Direct receipts
+              {language === "ms" ? "Resit jualan terus" : "Direct receipts"}
             </span>
           </div>
 
           {/* Total Products */}
           <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Active Products</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{language === "ms" ? "Produk Aktif" : "Active Products"}</span>
               <Boxes className="w-4 h-4 text-indigo-600" />
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {data?.stats.totalProducts ?? 0}
             </div>
             <span className="text-[11px] text-slate-400 font-medium mt-1 block">
-              Catalog inventory
+              {language === "ms" ? "Katalog inventori" : "Catalog inventory"}
             </span>
           </div>
 
@@ -497,14 +508,14 @@ export default function HomePage() {
             }`}
           >
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Stock Alerts</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{t("stock_alerts")}</span>
               <AlertTriangle className="w-4 h-4 text-amber-500" />
             </div>
             <div className="text-2xl font-black text-amber-600">
-              {data?.stats.lowStockCount ?? 0} items
+              {data?.stats.lowStockCount ?? 0} {t("items_count")}
             </div>
             <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mt-1 block">
-              {data?.stats.lowStockCount ? "Needs restock" : "All healthy"}
+              {data?.stats.lowStockCount ? (language === "ms" ? "Perlu tambah stok" : "Needs restock") : (language === "ms" ? "Semua mencukupi" : "All healthy")}
             </span>
           </Link>
         </div>
@@ -515,9 +526,9 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
-              Department Shortcuts
+              {language === "ms" ? "Pintas Pantas Bahagian" : "Department Shortcuts"}
             </h2>
-            <p className="text-xs text-slate-400">Quickly navigate to business modules</p>
+            <p className="text-xs text-slate-400">{language === "ms" ? "Navigasi pantas ke modul perniagaan" : "Quickly navigate to business modules"}</p>
           </div>
         </div>
 
@@ -557,7 +568,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400">
-                  <span>Enter</span>
+                  <span>{t("enter")}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
@@ -572,15 +583,15 @@ export default function HomePage() {
           <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-sm text-slate-800 dark:text-white">
-                Recent Sales Transactions
+                {language === "ms" ? "Transaksi Jualan Terkini" : "Recent Sales Transactions"}
               </h2>
-              <p className="text-xs text-slate-400">Latest completed point of sale activity</p>
+              <p className="text-xs text-slate-400">{language === "ms" ? "Aktiviti jualan selesai terkini" : "Latest completed point of sale activity"}</p>
             </div>
             <Link
               href="/transactions"
               className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
-              <span>View all transactions</span>
+              <span>{language === "ms" ? "Lihat semua transaksi" : "View all transactions"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -589,11 +600,11 @@ export default function HomePage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="p-3.5">Sale #</th>
-                  <th className="p-3.5">Date & Time</th>
-                  <th className="p-3.5">Cashier</th>
-                  <th className="p-3.5">Method</th>
-                  <th className="p-3.5 text-right">Total</th>
+                  <th className="p-3.5">{t("sale_number")}</th>
+                  <th className="p-3.5">{t("date_time")}</th>
+                  <th className="p-3.5">{t("cashier")}</th>
+                  <th className="p-3.5">{t("method")}</th>
+                  <th className="p-3.5 text-right">{t("total")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

@@ -24,6 +24,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { translateRole, translateGender, translateRace } from "@/lib/i18n/translations";
 import { formatDate } from "@/lib/utils";
 
 interface StaffUser {
@@ -42,23 +43,23 @@ interface StaffUser {
 const roleStyles: Record<string, { badge: string; label: string; icon: string }> = {
   owner: {
     badge: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
-    label: "👑 Store Owner (Admin)",
+    label: "Store Owner (Admin)",
     icon: "👑",
   },
   cashier: {
     badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
-    label: "💳 Cashier",
+    label: "Cashier",
     icon: "💳",
   },
   stock_handler: {
     badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800",
-    label: "📦 Stock Manager",
+    label: "Stock Manager",
     icon: "📦",
   },
 };
 
 export default function StaffPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const router = useRouter();
 
   const [staffList, setStaffList] = useState<StaffUser[]>([]);
@@ -321,7 +322,7 @@ export default function StaffPage() {
               {t("staff")}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Admin: View staff roster and registration details, create accounts, and manage permissions
+              {t("staff_subtitle")}
             </p>
           </div>
         </div>
@@ -331,7 +332,7 @@ export default function StaffPage() {
           className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Staff</span>
+          <span>{t("add_new_staff")}</span>
         </button>
       </div>
 
@@ -351,7 +352,7 @@ export default function StaffPage() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search staff by name, @username, or phone..."
+                placeholder={t("search_staff_placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -359,16 +360,16 @@ export default function StaffPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Role:</span>
+              <span className="text-xs font-semibold text-slate-500">{t("role_label")}</span>
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
                 className="p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
               >
-                <option value="all">All Roles ({staffList.length})</option>
-                <option value="owner">Store Owners ({staffList.filter((s) => s.role === "owner").length})</option>
-                <option value="cashier">Cashiers ({staffList.filter((s) => s.role === "cashier").length})</option>
-                <option value="stock_handler">Stock Managers ({staffList.filter((s) => s.role === "stock_handler").length})</option>
+                <option value="all">{t("all_roles")} ({staffList.length})</option>
+                <option value="owner">{t("store_owners")} ({staffList.filter((s) => s.role === "owner").length})</option>
+                <option value="cashier">{t("cashiers")} ({staffList.filter((s) => s.role === "cashier").length})</option>
+                <option value="stock_handler">{t("stock_managers")} ({staffList.filter((s) => s.role === "stock_handler").length})</option>
               </select>
             </div>
           </div>
@@ -376,11 +377,11 @@ export default function StaffPage() {
           {/* Staff Grid Cards */}
           {loading ? (
             <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs">
-              Loading staff roster and registration details...
+              {t("loading_staff")}
             </div>
           ) : filteredStaff.length === 0 ? (
             <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-xs">
-              No staff members found matching your search.
+              {t("no_staff_found")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -397,7 +398,7 @@ export default function StaffPage() {
                           roleStyles[st.role]?.badge || "bg-slate-100"
                         }`}
                       >
-                        {roleStyles[st.role]?.label || st.role}
+                        {roleStyles[st.role]?.icon || "👤"} {translateRole(st.role, language)}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
@@ -441,11 +442,11 @@ export default function StaffPage() {
                     <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
                         <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="font-mono">{st.phoneNumber || "No phone recorded"}</span>
+                        <span className="font-mono">{st.phoneNumber || t("no_phone_recorded")}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-slate-500">
                         <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{st.gender || "Male"} • {st.race || "Malay"}</span>
+                        <span>{translateGender(st.gender, language)} • {translateRace(st.race, language)}</span>
                       </div>
                       {st.address && (
                         <div className="flex items-start gap-2">
@@ -457,7 +458,7 @@ export default function StaffPage() {
                       )}
                       <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-1">
                         <Calendar className="w-3.5 h-3.5 shrink-0" />
-                        <span>Registered {formatDate(st.createdAt)}</span>
+                        <span>{t("registered_on")} {formatDate(st.createdAt)}</span>
                       </div>
                     </div>
                   </div>
@@ -466,13 +467,13 @@ export default function StaffPage() {
                   <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                     <span className="text-slate-400 flex items-center gap-1">
                       <ShoppingCart className="w-3.5 h-3.5" />
-                      <span>{st._count?.sales || 0} sales</span>
+                      <span>{st._count?.sales || 0} {t("sales_processed")}</span>
                     </span>
                     <button
                       onClick={() => openViewModal(st)}
                       className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                     >
-                      View Details &rarr;
+                      {t("view_details")} &rarr;
                     </button>
                   </div>
                 </div>
@@ -489,7 +490,7 @@ export default function StaffPage() {
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 <h3 className="font-bold text-base text-slate-800 dark:text-white">
-                  Staff Registration Profile
+                  {t("staff_registration_profile")}
                 </h3>
               </div>
               <button
@@ -516,7 +517,7 @@ export default function StaffPage() {
                       roleStyles[viewStaff.role]?.badge || "bg-slate-100"
                     }`}
                   >
-                    {roleStyles[viewStaff.role]?.label || viewStaff.role}
+                    {roleStyles[viewStaff.role]?.icon || "👤"} {translateRole(viewStaff.role, language)}
                   </span>
                 </div>
               </div>
@@ -524,39 +525,39 @@ export default function StaffPage() {
               {/* Registration Meta Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">Phone Number</span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">{t("phone_number")}</span>
                   <p className="font-bold text-slate-800 dark:text-white mt-0.5 font-mono">
                     {viewStaff.phoneNumber || "N/A"}
                   </p>
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">Gender & Race</span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">{t("gender")} & {t("race")}</span>
                   <p className="font-bold text-slate-800 dark:text-white mt-0.5">
-                    {viewStaff.gender || "Male"} • {viewStaff.race || "Malay"}
+                    {translateGender(viewStaff.gender, language)} • {translateRace(viewStaff.race, language)}
                   </p>
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">Registered On</span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">{t("registered_on")}</span>
                   <p className="font-bold text-slate-800 dark:text-white mt-0.5">
                     {formatDate(viewStaff.createdAt)}
                   </p>
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">Sales Processed</span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">{t("sales_processed")}</span>
                   <p className="font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-                    {viewStaff._count?.sales || 0} transactions
+                    {viewStaff._count?.sales || 0} {t("transactions_count")}
                   </p>
                 </div>
               </div>
 
               {/* Residential Address */}
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 font-semibold uppercase">Residential Address</span>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">{t("residential_address")}</span>
                 <p className="text-slate-700 dark:text-slate-300 mt-1 whitespace-pre-wrap leading-relaxed font-medium">
-                  {viewStaff.address || "No residential address provided."}
+                  {viewStaff.address || t("no_address_provided")}
                 </p>
               </div>
 
@@ -564,7 +565,7 @@ export default function StaffPage() {
               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center gap-2.5 text-amber-800 dark:text-amber-300">
                 <Lock className="w-4 h-4 text-amber-600 shrink-0" />
                 <span className="text-[11px] leading-tight">
-                  Security credentials (password hash, recovery questions) are encrypted and protected.
+                  {t("security_encrypted_notice")}
                 </span>
               </div>
 
@@ -574,7 +575,7 @@ export default function StaffPage() {
                   onClick={() => setViewModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
-                  Close
+                  {t("close")}
                 </button>
                 <button
                   onClick={() => {
@@ -584,7 +585,7 @@ export default function StaffPage() {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-1.5"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
-                  <span>Edit Profile</span>
+                  <span>{t("edit_profile")}</span>
                 </button>
               </div>
             </div>
@@ -597,7 +598,7 @@ export default function StaffPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Add New Staff Member</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("add_new_staff")}</h3>
               <button
                 onClick={() => setAddModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -614,7 +615,7 @@ export default function StaffPage() {
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Legal Name *</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("full_legal_name")} *</label>
                 <input
                   type="text"
                   required
@@ -627,7 +628,7 @@ export default function StaffPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Username *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("username")} *</label>
                   <input
                     type="text"
                     required
@@ -639,22 +640,22 @@ export default function StaffPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Role *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("role_label")} *</label>
                   <select
                     value={addRole}
                     onChange={(e: any) => setAddRole(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="cashier">💳 Cashier</option>
-                    <option value="stock_handler">📦 Stock Manager</option>
-                    <option value="owner">👑 Store Owner</option>
+                    <option value="cashier">💳 {translateRole("cashier", language)}</option>
+                    <option value="stock_handler">📦 {translateRole("stock_handler", language)}</option>
+                    <option value="owner">👑 {translateRole("owner", language)}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Password *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("password")} *</label>
                   <div className="relative">
                     <input
                       type={showAddPassword ? "text" : "password"}
@@ -676,7 +677,7 @@ export default function StaffPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("phone_number")}</label>
                   <input
                     type="text"
                     placeholder="e.g. 012-3456789"
@@ -689,35 +690,35 @@ export default function StaffPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("gender")}</label>
                   <select
                     value={addGender}
                     onChange={(e) => setAddGender(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="Male">{t("male")}</option>
+                    <option value="Female">{t("female")}</option>
+                    <option value="Other">{t("other")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Race / Ethnicity</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("race")}</label>
                   <select
                     value={addRace}
                     onChange={(e) => setAddRace(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="Malay">Malay</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Indian">Indian</option>
-                    <option value="Other">Other</option>
+                    <option value="Malay">{t("malay")}</option>
+                    <option value="Chinese">{t("chinese")}</option>
+                    <option value="Indian">{t("indian")}</option>
+                    <option value="Other">{t("other")}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Residential Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("residential_address")}</label>
                 <textarea
                   rows={2}
                   placeholder="Enter residential address..."
@@ -733,14 +734,14 @@ export default function StaffPage() {
                   onClick={() => setAddModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={addLoading}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
                 >
-                  {addLoading ? "Creating..." : "Create Account"}
+                  {addLoading ? t("creating") : t("create_account")}
                 </button>
               </div>
             </form>
@@ -753,7 +754,7 @@ export default function StaffPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Edit Staff Account</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("edit_staff_member")}</h3>
               <button
                 onClick={() => setEditModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -770,7 +771,7 @@ export default function StaffPage() {
               )}
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Legal Name *</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("full_legal_name")} *</label>
                 <input
                   type="text"
                   required
@@ -782,7 +783,7 @@ export default function StaffPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Username *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("username")} *</label>
                   <input
                     type="text"
                     required
@@ -793,22 +794,22 @@ export default function StaffPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Role *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("role_label")} *</label>
                   <select
                     value={editRole}
                     onChange={(e: any) => setEditRole(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="cashier">💳 Cashier</option>
-                    <option value="stock_handler">📦 Stock Manager</option>
-                    <option value="owner">👑 Store Owner</option>
+                    <option value="cashier">💳 {translateRole("cashier", language)}</option>
+                    <option value="stock_handler">📦 {translateRole("stock_handler", language)}</option>
+                    <option value="owner">👑 {translateRole("owner", language)}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("phone_number")}</label>
                   <input
                     type="text"
                     value={editPhone}
@@ -819,7 +820,7 @@ export default function StaffPage() {
 
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Password Reset (Optional)
+                    {t("password_reset_optional")}
                   </label>
                   <div className="relative">
                     <input
@@ -842,35 +843,35 @@ export default function StaffPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("gender")}</label>
                   <select
                     value={editGender}
                     onChange={(e) => setEditGender(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="Male">{t("male")}</option>
+                    <option value="Female">{t("female")}</option>
+                    <option value="Other">{t("other")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Race / Ethnicity</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("race")}</label>
                   <select
                     value={editRace}
                     onChange={(e) => setEditRace(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    <option value="Malay">Malay</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Indian">Indian</option>
-                    <option value="Other">Other</option>
+                    <option value="Malay">{t("malay")}</option>
+                    <option value="Chinese">{t("chinese")}</option>
+                    <option value="Indian">{t("indian")}</option>
+                    <option value="Other">{t("other")}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Residential Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("residential_address")}</label>
                 <textarea
                   rows={2}
                   value={editAddress}
@@ -885,14 +886,14 @@ export default function StaffPage() {
                   onClick={() => setEditModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={editLoading}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
                 >
-                  {editLoading ? "Updating..." : "Save Changes"}
+                  {editLoading ? t("saving_changes") : t("save_changes")}
                 </button>
               </div>
             </form>
@@ -909,13 +910,13 @@ export default function StaffPage() {
             </div>
 
             <div className="text-center">
-              <h3 className="font-bold text-base text-slate-800 dark:text-white">Delete Staff Account</h3>
+              <h3 className="font-bold text-base text-slate-800 dark:text-white">{t("delete_staff_account")}</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Are you sure you want to delete staff account{" "}
+                {t("delete_staff_confirm")}{" "}
                 <strong className="text-slate-700 dark:text-slate-300">
                   {deletingStaff.fullName} (@{deletingStaff.username})
                 </strong>
-                ? This action cannot be undone.
+                ? {t("cannot_be_undone")}
               </p>
             </div>
 
@@ -925,7 +926,7 @@ export default function StaffPage() {
                 onClick={() => setDeleteModalOpen(false)}
                 className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-xs"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -933,7 +934,7 @@ export default function StaffPage() {
                 onClick={handleDeleteStaff}
                 className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 disabled:opacity-50"
               >
-                {deleteLoading ? "Deleting..." : "Yes, Delete Staff"}
+                {deleteLoading ? t("deleting") : t("yes_delete_staff")}
               </button>
             </div>
           </div>

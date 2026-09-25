@@ -3,6 +3,7 @@
 import React, { useRef } from "react";
 import Image from "next/image";
 import { X, Printer, Copy, Check, Calendar, Truck, Building2, User, Phone, Mail } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 import { formatMYR, formatDate } from "@/lib/utils";
 
 interface POItem {
@@ -41,6 +42,7 @@ export default function PurchaseOrderModal({
   notes,
   issuedBy = "Nolan Printing Management",
 }: PurchaseOrderModalProps) {
+  const { t, language } = useI18n();
   const [copied, setCopied] = React.useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +88,7 @@ export default function PurchaseOrderModal({
             <span className="font-mono font-bold text-xs bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg">
               {poNumber}
             </span>
-            <span className="text-xs text-slate-500 font-medium">Purchase Order Document</span>
+            <span className="text-xs text-slate-500 font-medium">{t("po_document")}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -95,7 +97,7 @@ export default function PurchaseOrderModal({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? "Copied Order Text" : "Copy Order"}</span>
+              <span>{copied ? t("copied_order") : t("copy_order")}</span>
             </button>
 
             <button
@@ -103,7 +105,7 @@ export default function PurchaseOrderModal({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print / PDF</span>
+              <span>{t("print_pdf")}</span>
             </button>
 
             <button
@@ -124,8 +126,10 @@ export default function PurchaseOrderModal({
                 <Image src="/images/logo.jpeg" alt="Logo" fill className="object-contain" priority />
               </div>
               <div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">NOLAN PRINTING SERVICES</h2>
-                <p className="text-xs text-slate-600 font-medium">Digital Printing, Photocopy, Stationery & Plan Plotting</p>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                  {language === "ms" ? "PERKHIDMATAN PERCETAKAN NOLAN" : "NOLAN PRINTING SERVICES"}
+                </h2>
+                <p className="text-xs text-slate-600 font-medium">{t("company_services_desc")}</p>
                 <p className="text-xs text-slate-500 mt-1">Tel: +60 12-345 6789 • Email: orders@nolanprinting.store</p>
                 <p className="text-[11px] text-slate-400">Website: https://nolanprinting.store</p>
               </div>
@@ -133,13 +137,13 @@ export default function PurchaseOrderModal({
 
             <div className="sm:text-right space-y-1">
               <span className="inline-block px-3 py-1 bg-blue-600 text-white font-black text-xs uppercase tracking-wider rounded-lg">
-                PURCHASE ORDER
+                {t("purchase_order_upper")}
               </span>
               <div className="text-sm font-mono font-bold text-slate-900 mt-1">PO #: {poNumber}</div>
-              <div className="text-xs text-slate-500">Date: {formatDate(date)}</div>
+              <div className="text-xs text-slate-500">{t("date")}: {formatDate(date)}</div>
               {expectedDate && (
                 <div className="text-xs text-amber-600 font-semibold">
-                  Required By: {formatDate(expectedDate)}
+                  {t("required_by")} {formatDate(expectedDate)}
                 </div>
               )}
             </div>
@@ -149,20 +153,20 @@ export default function PurchaseOrderModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
             {/* Vendor / Supplier */}
             <div className="space-y-1">
-              <span className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">VENDOR / SUPPLIER</span>
-              <h3 className="font-bold text-sm text-slate-900">{supplier?.name || "Direct Wholesale Supplier"}</h3>
-              {supplier?.contact && <p className="text-slate-600">Contact: {supplier.contact}</p>}
+              <span className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">{t("vendor_supplier")}</span>
+              <h3 className="font-bold text-sm text-slate-900">{supplier?.name || t("direct_wholesale_supplier")}</h3>
+              {supplier?.contact && <p className="text-slate-600">{t("contact")}: {supplier.contact}</p>}
               {supplier?.email && <p className="text-slate-600">Email: {supplier.email}</p>}
               {supplier?.address && <p className="text-slate-500 whitespace-pre-line">{supplier.address}</p>}
             </div>
 
             {/* Ship To / Deliver To */}
             <div className="space-y-1 sm:text-right">
-              <span className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">DELIVERY DESTINATION</span>
-              <h3 className="font-bold text-sm text-slate-900">Nolan Printing Services Hub</h3>
-              <p className="text-slate-600">Attention: Receiving Department / Stock Manager</p>
-              <p className="text-slate-500">Main Production Facility & Store</p>
-              <p className="text-slate-500">Kuala Lumpur, Malaysia</p>
+              <span className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">{t("delivery_destination")}</span>
+              <h3 className="font-bold text-sm text-slate-900">{t("hub_name")}</h3>
+              <p className="text-slate-600">{t("receiving_dept_attention")}</p>
+              <p className="text-slate-500">{t("main_facility_store")}</p>
+              <p className="text-slate-500">{t("kuala_lumpur_my")}</p>
             </div>
           </div>
 
@@ -172,11 +176,11 @@ export default function PurchaseOrderModal({
               <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
                   <th className="p-3">#</th>
-                  <th className="p-3">Item Description</th>
-                  <th className="p-3 text-center">Pack Spec</th>
-                  <th className="p-3 text-center">Qty Ordered</th>
-                  <th className="p-3 text-right">Est. Unit Cost</th>
-                  <th className="p-3 text-right">Line Total</th>
+                  <th className="p-3">{t("item_description")}</th>
+                  <th className="p-3 text-center">{t("pack_spec")}</th>
+                  <th className="p-3 text-center">{t("qty_ordered")}</th>
+                  <th className="p-3 text-right">{t("est_unit_cost")}</th>
+                  <th className="p-3 text-right">{t("line_total")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -188,7 +192,7 @@ export default function PurchaseOrderModal({
                       {item.barcode && <span className="font-mono text-[10px] text-slate-400 font-normal">#{item.barcode}</span>}
                     </td>
                     <td className="p-3 text-center text-slate-600">
-                      {item.packSize && item.packSize > 1 ? `${item.packSize} pcs/pack` : "Single unit"}
+                      {item.packSize && item.packSize > 1 ? `${item.packSize} ${t("pcs_per_pack")}` : t("single_unit")}
                     </td>
                     <td className="p-3 text-center font-bold text-blue-600">
                       {item.quantity}
@@ -205,7 +209,7 @@ export default function PurchaseOrderModal({
               <tfoot className="bg-slate-50 font-bold border-t border-slate-200">
                 <tr>
                   <td colSpan={5} className="p-3 text-right text-slate-600 uppercase text-[11px]">
-                    Total Estimated Valuation:
+                    {t("total_est_valuation")}
                   </td>
                   <td className="p-3 text-right text-base text-slate-900 font-black">
                     {formatMYR(totalCost)}
@@ -218,7 +222,7 @@ export default function PurchaseOrderModal({
           {/* Notes & Delivery Instructions */}
           {notes && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs">
-              <span className="font-bold text-amber-800">Special Instructions / PO Notes:</span>
+              <span className="font-bold text-amber-800">{t("special_instructions_po")}</span>
               <p className="text-amber-900 mt-0.5">{notes}</p>
             </div>
           )}
@@ -227,14 +231,14 @@ export default function PurchaseOrderModal({
           <div className="pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 text-xs">
             <div>
               <div className="border-b border-slate-400 pb-12" />
-              <div className="pt-2 font-bold text-slate-800">Authorized Purchasing Agent</div>
-              <div className="text-[11px] text-slate-500">Nolan Printing Services Management</div>
+              <div className="pt-2 font-bold text-slate-800">{t("authorized_purchasing_agent")}</div>
+              <div className="text-[11px] text-slate-500">{t("nolan_management")}</div>
             </div>
 
             <div>
               <div className="border-b border-slate-400 pb-12" />
-              <div className="pt-2 font-bold text-slate-800">Supplier Acknowledgment & Date</div>
-              <div className="text-[11px] text-slate-500">{supplier?.name || "Vendor Delivery Representative"}</div>
+              <div className="pt-2 font-bold text-slate-800">{t("supplier_acknowledgment")}</div>
+              <div className="text-[11px] text-slate-500">{supplier?.name || t("vendor_delivery_rep")}</div>
             </div>
           </div>
         </div>

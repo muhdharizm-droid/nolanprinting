@@ -27,6 +27,8 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { formatMYR, formatDate } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
+import { translateCategory, translateRole } from "@/lib/i18n/translations";
 
 interface StockIntakeSummary {
   totalUnits: number;
@@ -84,6 +86,7 @@ const CATEGORY_COLORS = [
 ];
 
 export default function StockIntakeReportView() {
+  const { t, language } = useI18n();
   const [range, setRange] = useState<"7d" | "30d" | "90d" | "1y" | "all">("30d");
   const [metricMode, setMetricMode] = useState<"units" | "cost">("units");
   const [loading, setLoading] = useState(true);
@@ -138,10 +141,12 @@ export default function StockIntakeReportView() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800 dark:text-white">
-              Stock Intake & Restock Trends
+              {language === "ms" ? "Trend Kemasukan & Tambah Stok" : "Stock Intake & Restock Trends"}
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Deliveries received from suppliers and paper warehouse intakes
+              {language === "ms"
+                ? "Penghantaran diterima daripada pembekal dan gudang kertas"
+                : "Deliveries received from suppliers and paper warehouse intakes"}
             </p>
           </div>
         </div>
@@ -157,7 +162,7 @@ export default function StockIntakeReportView() {
                   : "text-slate-600 dark:text-slate-400"
               }`}
             >
-              Units Received
+              {language === "ms" ? "Unit Diterima" : "Units Received"}
             </button>
             <button
               onClick={() => setMetricMode("cost")}
@@ -167,7 +172,7 @@ export default function StockIntakeReportView() {
                   : "text-slate-600 dark:text-slate-400"
               }`}
             >
-              Value (RM)
+              {language === "ms" ? "Nilai (RM)" : "Value (RM)"}
             </button>
           </div>
 
@@ -183,21 +188,21 @@ export default function StockIntakeReportView() {
                 }`}
               >
                 {r === "7d"
-                  ? "7D"
+                  ? (language === "ms" ? "7H" : "7D")
                   : r === "30d"
-                  ? "30D"
+                  ? (language === "ms" ? "30H" : "30D")
                   : r === "90d"
-                  ? "90D"
+                  ? (language === "ms" ? "90H" : "90D")
                   : r === "1y"
-                  ? "1Y"
-                  : "ALL"}
+                  ? (language === "ms" ? "1T" : "1Y")
+                  : (language === "ms" ? "SEMUA" : "ALL")}
               </button>
             ))}
           </div>
 
           <button
             onClick={loadData}
-            title="Refresh"
+            title={language === "ms" ? "Muat Semula" : "Refresh"}
             className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -210,24 +215,28 @@ export default function StockIntakeReportView() {
         {/* Total Units Received */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-            <span>Total Units Received</span>
+            <span>{language === "ms" ? "Jumlah Unit Diterima" : "Total Units Received"}</span>
             <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Boxes className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {summary?.totalUnits.toLocaleString() || 0}
-            <span className="text-xs font-normal text-slate-400 ml-1">units/reams</span>
+            <span className="text-xs font-normal text-slate-400 ml-1">
+              {language === "ms" ? "unit/rim" : "units/reams"}
+            </span>
           </div>
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block">
-            Across {summary?.totalBatches || 0} delivery batches
+            {language === "ms"
+              ? `Merentasi ${summary?.totalBatches || 0} kelompok penghantaran`
+              : `Across ${summary?.totalBatches || 0} delivery batches`}
           </span>
         </div>
 
         {/* Restock Cost Valuation */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-            <span>Restock Valuation</span>
+            <span>{language === "ms" ? "Nilai Tambah Stok" : "Restock Valuation"}</span>
             <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <DollarSign className="w-3.5 h-3.5" />
             </div>
@@ -235,13 +244,15 @@ export default function StockIntakeReportView() {
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {formatMYR(summary?.totalCostValuation || 0)}
           </div>
-          <span className="text-[10px] text-slate-400 block">Based on supplier purchase cost</span>
+          <span className="text-[10px] text-slate-400 block">
+            {language === "ms" ? "Berdasarkan kos belian pembekal" : "Based on supplier purchase cost"}
+          </span>
         </div>
 
         {/* Delivery Batches */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-            <span>Intake Batches</span>
+            <span>{language === "ms" ? "Kelompok Kemasukan" : "Intake Batches"}</span>
             <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Truck className="w-3.5 h-3.5" />
             </div>
@@ -249,22 +260,24 @@ export default function StockIntakeReportView() {
           <div className="text-2xl font-black text-slate-900 dark:text-white">
             {summary?.totalBatches || 0}
           </div>
-          <span className="text-[10px] text-slate-400 block">Logged stock receipts</span>
+          <span className="text-[10px] text-slate-400 block">
+            {language === "ms" ? "Penerimaan stok dicatat" : "Logged stock receipts"}
+          </span>
         </div>
 
         {/* Most Restocked Item */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-            <span>Highest Volume Item</span>
+            <span>{language === "ms" ? "Item Volum Tertinggi" : "Highest Volume Item"}</span>
             <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <TrendingUp className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={summary?.mostRestockedItem}>
-            {summary?.mostRestockedItem || "None"}
+            {summary?.mostRestockedItem || (language === "ms" ? "Tiada" : "None")}
           </div>
           <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold block">
-            Most replenished supply
+            {language === "ms" ? "Bekalan paling banyak ditambah" : "Most replenished supply"}
           </span>
         </div>
       </div>
@@ -276,16 +289,20 @@ export default function StockIntakeReportView() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-sm text-slate-800 dark:text-white">
-                Intake Volume Over Time
+                {language === "ms" ? "Volum Kemasukan Mengikut Masa" : "Intake Volume Over Time"}
               </h3>
               <p className="text-[11px] text-slate-400">
-                {metricMode === "units" ? "Units / reams received per day" : "Total restock cost (RM) per day"}
+                {metricMode === "units"
+                  ? (language === "ms" ? "Unit / rim diterima setiap hari" : "Units / reams received per day")
+                  : (language === "ms" ? "Jumlah kos tambah stok (RM) setiap hari" : "Total restock cost (RM) per day")}
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span>
               <span className="text-slate-600 dark:text-slate-300 font-medium">
-                {metricMode === "units" ? "Units Received" : "Cost Value (RM)"}
+                {metricMode === "units"
+                  ? (language === "ms" ? "Unit Diterima" : "Units Received")
+                  : (language === "ms" ? "Nilai Kos (RM)" : "Cost Value (RM)")}
               </span>
             </div>
           </div>
@@ -293,11 +310,11 @@ export default function StockIntakeReportView() {
           <div className="h-72 w-full">
             {loading ? (
               <div className="h-full flex items-center justify-center text-slate-400 text-xs">
-                Loading graph...
+                {language === "ms" ? "Memuatkan graf..." : "Loading graph..."}
               </div>
             ) : trend.length === 0 ? (
               <div className="h-full flex items-center justify-center text-slate-400 text-xs">
-                No intake records for this period.
+                {language === "ms" ? "Tiada rekod kemasukan bagi tempoh ini." : "No intake records for this period."}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -349,14 +366,16 @@ export default function StockIntakeReportView() {
         <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-sm text-slate-800 dark:text-white">
-              Intake by Category
+              {language === "ms" ? "Kemasukan mengikut Kategori" : "Intake by Category"}
             </h3>
-            <p className="text-[11px] text-slate-400 mb-2">Proportion of restock volume</p>
+            <p className="text-[11px] text-slate-400 mb-2">
+              {language === "ms" ? "Kadar volum penambahan stok" : "Proportion of restock volume"}
+            </p>
 
             <div className="h-52 w-full">
               {byCategory.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-slate-400 text-xs">
-                  No data available
+                  {language === "ms" ? "Tiada data tersedia" : "No data available"}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -379,8 +398,8 @@ export default function StockIntakeReportView() {
                     </Pie>
                     <Tooltip
                       formatter={(value: any, name: any, item: any) => [
-                        `${value} units (${item.payload.percentage}%)`,
-                        item.payload.name,
+                        `${value} ${language === "ms" ? "unit" : "units"} (${item.payload.percentage}%)`,
+                        translateCategory(item.payload.name, language),
                       ]}
                       contentStyle={{
                         backgroundColor: "#0f172a",
@@ -404,7 +423,9 @@ export default function StockIntakeReportView() {
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }}
                   ></span>
-                  <span className="font-medium truncate max-w-[130px]">{cat.name}</span>
+                  <span className="font-medium truncate max-w-[130px]">
+                    {translateCategory(cat.name, language)}
+                  </span>
                 </div>
                 <div className="font-bold text-slate-800 dark:text-white text-right">
                   {cat.units} <span className="font-normal text-slate-400 text-[10px]">({cat.percentage}%)</span>
@@ -419,10 +440,12 @@ export default function StockIntakeReportView() {
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div>
           <h3 className="font-bold text-sm text-slate-800 dark:text-white">
-            Top Restocked Products & Paper Materials
+            {language === "ms" ? "Produk & Bahan Kertas Paling Banyak Dimasukkan" : "Top Restocked Products & Paper Materials"}
           </h3>
           <p className="text-[11px] text-slate-400">
-            Supplies with the highest delivery intake quantities
+            {language === "ms"
+              ? "Bekalan dengan kuantiti kemasukan penghantaran tertinggi"
+              : "Supplies with the highest delivery intake quantities"}
           </p>
         </div>
 
@@ -441,7 +464,10 @@ export default function StockIntakeReportView() {
                     {prod.name}
                   </h4>
                   <span className="text-[10px] text-slate-400 block">
-                    {prod.categoryName} {prod.isRawMaterial ? "(Internal Supply)" : "(Retail)"}
+                    {translateCategory(prod.categoryName, language)}{" "}
+                    {prod.isRawMaterial
+                      ? (language === "ms" ? "(Bekalan Dalaman)" : "(Internal Supply)")
+                      : (language === "ms" ? "(Runcit)" : "(Retail)")}
                   </span>
                 </div>
               </div>
@@ -463,10 +489,12 @@ export default function StockIntakeReportView() {
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-bold text-sm text-slate-800 dark:text-white">
-              Detailed Delivery Intake Records
+              {language === "ms" ? "Rekod Terperinci Kemasukan Penghantaran" : "Detailed Delivery Intake Records"}
             </h3>
             <p className="text-[11px] text-slate-400">
-              Audit log of who accepted each delivery batch and its supplier valuation
+              {language === "ms"
+                ? "Log audit penerimaan setiap kelompok penghantaran dan penilaian pembekal"
+                : "Audit log of who accepted each delivery batch and its supplier valuation"}
             </p>
           </div>
 
@@ -474,7 +502,7 @@ export default function StockIntakeReportView() {
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search delivery or supplier..."
+              placeholder={language === "ms" ? "Cari penghantaran atau pembekal..." : "Search delivery or supplier..."}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none"
@@ -486,21 +514,23 @@ export default function StockIntakeReportView() {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
               <tr>
-                <th className="p-3.5">Delivery Date</th>
-                <th className="p-3.5">Product / Material</th>
-                <th className="p-3.5">Classification</th>
-                <th className="p-3.5 text-center">Quantity Added</th>
-                <th className="p-3.5 text-right">Unit Cost</th>
-                <th className="p-3.5 text-right">Batch Total</th>
-                <th className="p-3.5">Supplier</th>
-                <th className="p-3.5">Accepted By</th>
+                <th className="p-3.5">{language === "ms" ? "Tarikh Penghantaran" : "Delivery Date"}</th>
+                <th className="p-3.5">{language === "ms" ? "Produk / Bahan" : "Product / Material"}</th>
+                <th className="p-3.5">{t("classification")}</th>
+                <th className="p-3.5 text-center">{language === "ms" ? "Kuantiti Ditambah" : "Quantity Added"}</th>
+                <th className="p-3.5 text-right">{language === "ms" ? "Kos Seunit" : "Unit Cost"}</th>
+                <th className="p-3.5 text-right">{language === "ms" ? "Jumlah Kelompok" : "Batch Total"}</th>
+                <th className="p-3.5">{t("supplier")}</th>
+                <th className="p-3.5">{language === "ms" ? "Diterima Oleh" : "Accepted By"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredIntakes.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400">
-                    No intake records found matching your filter.
+                    {language === "ms"
+                      ? "Tiada rekod kemasukan ditemui sepadan dengan penapis anda."
+                      : "No intake records found matching your filter."}
                   </td>
                 </tr>
               ) : (
@@ -516,17 +546,17 @@ export default function StockIntakeReportView() {
                       {item.isRawMaterial ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                           <FileText className="w-3 h-3" />
-                          <span>Paper / Supply</span>
+                          <span>{t("paper_supply")}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
                           <Boxes className="w-3 h-3" />
-                          <span>Retail</span>
+                          <span>{t("retail_products")}</span>
                         </span>
                       )}
                     </td>
                     <td className="p-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400">
-                      +{item.quantity} units
+                      +{item.quantity} {t("units")}
                     </td>
                     <td className="p-3.5 text-right text-slate-500 dark:text-slate-400">
                       {formatMYR(item.unitCost)}
@@ -539,7 +569,7 @@ export default function StockIntakeReportView() {
                     </td>
                     <td className="p-3.5 text-slate-600 dark:text-slate-300">
                       <span className="font-semibold block">{item.userFullName}</span>
-                      <span className="text-[10px] text-slate-400 capitalize">{item.userRole.replace("_", " ")}</span>
+                      <span className="text-[10px] text-slate-400">{translateRole(item.userRole, language)}</span>
                     </td>
                   </tr>
                 ))

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Bell, AlertTriangle, ArrowRight, Package, CheckCircle2, RefreshCw } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 interface WorkflowItem {
   id: number;
@@ -23,6 +24,7 @@ interface WorkflowItem {
 }
 
 export default function LowStockAlertBell() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
@@ -85,8 +87,8 @@ export default function LowStockAlertBell() {
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="relative p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600 transition shadow-sm cursor-pointer"
-        title="Low Stock & Reorder Alerts"
-        aria-label="Low Stock Alerts"
+        title={t("low_stock_alerts")}
+        aria-label={t("low_stock_alerts")}
       >
         <Bell className="w-4 h-4" />
 
@@ -112,10 +114,10 @@ export default function LowStockAlertBell() {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-800 dark:text-white">
-                  Low-Stock Alerts
+                  {t("low_stock_alerts")}
                 </h4>
                 <p className="text-[10px] text-slate-400">
-                  Automated reordering & inventory monitor
+                  {t("reorder_monitor_sub")}
                 </p>
               </div>
             </div>
@@ -125,7 +127,7 @@ export default function LowStockAlertBell() {
                 setLoading(true);
                 fetchAlerts();
               }}
-              title="Refresh alerts"
+              title={t("refresh_alerts")}
               className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -138,13 +140,13 @@ export default function LowStockAlertBell() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  {criticalCount} Out of Stock
+                  {criticalCount} {t("out_of_stock")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  {alertCount - criticalCount} Low Level
+                  {alertCount - criticalCount} {t("low_level")}
                 </span>
               </div>
             </div>
@@ -159,10 +161,10 @@ export default function LowStockAlertBell() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-700 dark:text-slate-200">
-                    All Stock Levels Healthy
+                    {t("stock_levels_healthy")}
                   </p>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    No items currently breach inventory thresholds
+                    {t("no_threshold_breach")}
                   </p>
                 </div>
               </div>
@@ -179,9 +181,9 @@ export default function LowStockAlertBell() {
                         {item.product.name}
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                        <span>Min: {item.threshold}</span>
+                        <span>{t("min")}: {item.threshold}</span>
                         <span>•</span>
-                        <span>{item.supplier?.name || "No supplier assigned"}</span>
+                        <span>{item.supplier?.name || t("no_supplier_assigned")}</span>
                       </div>
                     </div>
 
@@ -193,10 +195,10 @@ export default function LowStockAlertBell() {
                             : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                         }`}
                       >
-                        {isOut ? "Out of Stock (0)" : `${item.currentStock} left`}
+                        {isOut ? t("out_of_stock_count") : `${item.currentStock} ${t("left")}`}
                       </span>
                       <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
-                        +{item.suggestedQty} reorder rec.
+                        +{item.suggestedQty} {t("reorder_rec")}
                       </div>
                     </div>
                   </div>
@@ -212,7 +214,7 @@ export default function LowStockAlertBell() {
               onClick={() => setOpen(false)}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
             >
-              <span>Manage Reorder Workflow & POs</span>
+              <span>{t("manage_reorder_workflow")}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>

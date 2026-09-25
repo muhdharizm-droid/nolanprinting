@@ -56,7 +56,7 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message);
-      setSuccessMsg("Settings updated successfully!");
+      setSuccessMsg(t("settings_saved_success"));
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
       alert(err.message || "Failed to update settings");
@@ -74,7 +74,7 @@ export default function SettingsPage() {
         </div>
         <div>
           <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("settings")}</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Configure business information, thermal receipt parameters, and defaults</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t("settings_subtitle")}</p>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Business / Brand Name</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("business_brand_name")}</label>
               <input
                 type="text"
                 required
@@ -105,7 +105,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Contact Phone Number</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("contact_phone_number")}</label>
               <input
                 type="text"
                 value={storePhone}
@@ -116,7 +116,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Store Address (Appears on Receipts)</label>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("store_address_receipts")}</label>
             <input
               type="text"
               value={storeAddress}
@@ -135,7 +135,7 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Default SST / Tax Rate (%)</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("default_tax_rate")}</label>
               <input
                 type="number"
                 step="0.1"
@@ -146,7 +146,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">System Language</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("system_language")}</label>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -175,7 +175,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Receipt Footer Note</label>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t("receipt_footer_note")}</label>
             <input
               type="text"
               value={receiptFooter}
@@ -193,7 +193,7 @@ export default function SettingsPage() {
             className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? "Saving..." : t("save_changes")}</span>
+            <span>{saving ? t("saving_changes") : t("save_changes")}</span>
           </button>
         </div>
       </form>
