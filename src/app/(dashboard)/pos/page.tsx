@@ -19,6 +19,7 @@ import {
   X,
   Clock,
   ShoppingCart,
+  AlertCircle,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { formatMYR } from "@/lib/utils";
@@ -55,40 +56,24 @@ type ColorMode = "bw" | "color";
 type PrintSides = "single" | "double";
 type ServiceType = "print" | "copy";
 
-const SERVICE_BASE_RATES: Record<
-  ServiceType,
-  Record<PaperSize, Record<ColorMode, Record<PrintSides, number>>>
-> = {
-  print: {
-    A4: { bw: { single: 0.15, double: 0.25 }, color: { single: 0.80, double: 1.40 } },
-    A3: { bw: { single: 0.40, double: 0.70 }, color: { single: 1.80, double: 3.20 } },
-    A5: { bw: { single: 0.10, double: 0.18 }, color: { single: 0.50, double: 0.90 } },
-    B5: { bw: { single: 0.12, double: 0.20 }, color: { single: 0.60, double: 1.10 } },
-  },
-  copy: {
-    A4: { bw: { single: 0.10, double: 0.18 }, color: { single: 0.60, double: 1.10 } },
-    A3: { bw: { single: 0.30, double: 0.50 }, color: { single: 1.50, double: 2.70 } },
-    A5: { bw: { single: 0.08, double: 0.15 }, color: { single: 0.40, double: 0.75 } },
-    B5: { bw: { single: 0.10, double: 0.18 }, color: { single: 0.50, double: 0.90 } },
-  },
-};
-
+// Paper material options (no default prices - cashier inputs rate manually)
 const PAPER_MATERIAL_OPTIONS = [
-  { id: "simili-70", name: "70gsm Simili Standard", surcharge: 0.00 },
-  { id: "premium-80", name: "80gsm Double A / Premium (+RM 0.05)", surcharge: 0.05 },
-  { id: "inkjet-100", name: "100gsm Inkjet Presentation (+RM 0.15)", surcharge: 0.15 },
-  { id: "artcard-260", name: "260gsm Glossy Art Card (+RM 0.50)", surcharge: 0.50 },
-  { id: "sticker", name: "Glossy Sticker / Label Sheet (+RM 1.00)", surcharge: 1.00 },
-  { id: "transparency", name: "Tracing Paper / Transparency (+RM 1.50)", surcharge: 1.50 },
+  { id: "simili-70", name: "70gsm Simili Standard" },
+  { id: "premium-80", name: "80gsm Double A / Premium" },
+  { id: "inkjet-100", name: "100gsm Inkjet Presentation" },
+  { id: "artcard-260", name: "260gsm Glossy Art Card" },
+  { id: "sticker", name: "Glossy Sticker / Label Sheet" },
+  { id: "transparency", name: "Tracing Paper / Transparency" },
 ];
 
+// Document finishing options (prices entered manually if selected)
 const FINISHING_OPTIONS = [
-  { id: "none", name: "None", cost: 0.00 },
-  { id: "staple", name: "Corner Staple (+RM 0.20)", cost: 0.20 },
-  { id: "punch", name: "2-Hole / 4-Hole Punch (+RM 0.30)", cost: 0.30 },
-  { id: "comb", name: "Plastic Comb Binding (+RM 2.50)", cost: 2.50 },
-  { id: "wire", name: "Wire-O Metal Binding (+RM 4.00)", cost: 4.00 },
-  { id: "laminate", name: "Heat Laminate per Sheet (+RM 1.50)", cost: 1.50 },
+  { id: "none", name: "None (Tanpa Kemasan)" },
+  { id: "staple", name: "Corner Staple" },
+  { id: "punch", name: "2-Hole / 4-Hole Punch" },
+  { id: "comb", name: "Plastic Comb Binding" },
+  { id: "wire", name: "Wire-O Metal Binding" },
+  { id: "laminate", name: "Heat Laminate per Sheet" },
 ];
 
 export default function PosPage() {
@@ -113,16 +98,20 @@ export default function PosPage() {
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Detailed Print & Photocopy Matrix State
+  // Detailed Print & Photocopy Calculator State (Manual Required Form - No Default Prices)
   const [calcServiceType, setCalcServiceType] = useState<ServiceType>("print");
   const [calcPaperSize, setCalcPaperSize] = useState<PaperSize>("A4");
   const [calcColorMode, setCalcColorMode] = useState<ColorMode>("bw");
   const [calcSides, setCalcSides] = useState<PrintSides>("single");
   const [calcMaterialId, setCalcMaterialId] = useState<string>("simili-70");
   const [calcFinishingId, setCalcFinishingId] = useState<string>("none");
-  const [calcPages, setCalcPages] = useState<number>(1);
-  const [calcCopies, setCalcCopies] = useState<number>(1);
-  const [calcCustomRate, setCalcCustomRate] = useState<string>("");
+  const [calcPages, setCalcPages] = useState<string>("1");
+  const [calcCopies, setCalcCopies] = useState<string>("1");
+  const [calcServicePrice, setCalcServicePrice] = useState<string>(""); // Required, no default price
+  const [calcPaperPrice, setCalcPaperPrice] = useState<string>(""); // Required, no default price
+  const [calcFinishingPrice, setCalcFinishingPrice] = useState<string>(""); // Required if finishing !== 'none'
+  const [calcErrors, setCalcErrors] = useState<Record<string, string>>({});
+  const [calcSubmitted, setCalcSubmitted] = useState<boolean>(false);
 
   const [catalogLoading, setCatalogLoading] = useState(true);
 
@@ -163,9 +152,21 @@ export default function PosPage() {
     return matchCat && matchSearch;
   });
 
-  // Open custom service modal with service pre-selected
+  // Open custom service modal with clean state and no default prices
   const openServiceConfigurator = (service: ServiceType = "print") => {
     setCalcServiceType(service);
+    setCalcPaperSize("A4");
+    setCalcColorMode("bw");
+    setCalcSides("single");
+    setCalcMaterialId("simili-70");
+    setCalcFinishingId("none");
+    setCalcPages("1");
+    setCalcCopies("1");
+    setCalcServicePrice("");
+    setCalcPaperPrice("");
+    setCalcFinishingPrice("");
+    setCalcErrors({});
+    setCalcSubmitted(false);
     setCalcModalOpen(true);
   };
 
@@ -239,11 +240,7 @@ export default function PosPage() {
     }
   };
 
-  // Printing & Photocopy Matrix Price Calculation
-  const getSelectedBaseRate = () => {
-    return SERVICE_BASE_RATES[calcServiceType][calcPaperSize][calcColorMode][calcSides];
-  };
-
+  // Printing & Photocopy Calculator Price Calculation & Form Validation
   const getSelectedMaterial = () => {
     return PAPER_MATERIAL_OPTIONS.find((m) => m.id === calcMaterialId) || PAPER_MATERIAL_OPTIONS[0];
   };
@@ -252,39 +249,131 @@ export default function PosPage() {
     return FINISHING_OPTIONS.find((f) => f.id === calcFinishingId) || FINISHING_OPTIONS[0];
   };
 
-  const computeEffectivePageRate = () => {
-    if (calcCustomRate && !isNaN(parseFloat(calcCustomRate))) {
-      return parseFloat(calcCustomRate);
+  const getSheetsPerCopy = () => {
+    const pages = Math.max(1, parseInt(calcPages) || 1);
+    return calcSides === "double" ? Math.ceil(pages / 2) : pages;
+  };
+
+  const getTotalSheets = () => {
+    const copies = Math.max(1, parseInt(calcCopies) || 1);
+    return getSheetsPerCopy() * copies;
+  };
+
+  const getTotalPages = () => {
+    const pages = Math.max(1, parseInt(calcPages) || 1);
+    const copies = Math.max(1, parseInt(calcCopies) || 1);
+    return pages * copies;
+  };
+
+  const computeCalcBreakdown = () => {
+    const pages = Math.max(1, parseInt(calcPages) || 1);
+    const copies = Math.max(1, parseInt(calcCopies) || 1);
+    const totalPages = pages * copies;
+    const totalSheets = getTotalSheets();
+
+    const servicePriceNum = parseFloat(calcServicePrice);
+    const paperPriceNum = parseFloat(calcPaperPrice);
+    const finishingPriceNum = parseFloat(calcFinishingPrice);
+
+    const hasServicePrice = calcServicePrice.trim() !== "" && !isNaN(servicePriceNum) && servicePriceNum >= 0;
+    const hasPaperPrice = calcPaperPrice.trim() !== "" && !isNaN(paperPriceNum) && paperPriceNum >= 0;
+    const hasFinishingPrice = calcFinishingId === "none" || (calcFinishingPrice.trim() !== "" && !isNaN(finishingPriceNum) && finishingPriceNum >= 0);
+
+    const serviceTotal = hasServicePrice ? servicePriceNum * totalPages : 0;
+    const paperTotal = hasPaperPrice ? paperPriceNum * totalSheets : 0;
+
+    let finishingTotal = 0;
+    if (calcFinishingId !== "none" && hasFinishingPrice) {
+      if (calcFinishingId === "laminate") {
+        finishingTotal = (finishingPriceNum || 0) * totalSheets;
+      } else {
+        finishingTotal = (finishingPriceNum || 0) * copies;
+      }
     }
-    const base = getSelectedBaseRate();
-    const material = getSelectedMaterial();
-    return Math.round((base + material.surcharge) * 100) / 100;
+
+    const grandTotal = Math.round((serviceTotal + paperTotal + finishingTotal) * 100) / 100;
+    const effectiveSheetRate = totalPages > 0 ? Math.round(((serviceTotal + paperTotal) / totalPages) * 100) / 100 : 0;
+
+    return {
+      serviceTotal,
+      paperTotal,
+      finishingTotal,
+      grandTotal,
+      effectiveSheetRate,
+      hasServicePrice,
+      hasPaperPrice,
+      hasFinishingPrice,
+      isConfigured: hasServicePrice && hasPaperPrice && hasFinishingPrice,
+    };
   };
 
-  const computeCalcPrice = () => {
-    const effectiveRate = computeEffectivePageRate();
-    const pages = Math.max(1, calcPages);
-    const copies = Math.max(1, calcCopies);
-    const finishing = getSelectedFinishing();
+  const validateCalcForm = () => {
+    const errors: Record<string, string> = {};
 
-    const finishingCost = finishing.id === "laminate" ? finishing.cost * pages : finishing.cost;
-    const singleSetTotal = pages * effectiveRate + finishingCost;
-    return Math.max(0.1, Math.round(singleSetTotal * copies * 100) / 100);
+    const pages = parseInt(calcPages);
+    if (!calcPages || isNaN(pages) || pages < 1) {
+      errors.pages = "Pages count is required (min 1).";
+    }
+
+    const copies = parseInt(calcCopies);
+    if (!calcCopies || isNaN(copies) || copies < 1) {
+      errors.copies = "Copies count is required (min 1).";
+    }
+
+    if (calcServicePrice.trim() === "") {
+      errors.servicePrice = "Service price per page is required.";
+    } else if (isNaN(parseFloat(calcServicePrice)) || parseFloat(calcServicePrice) < 0) {
+      errors.servicePrice = "Enter a valid service price (e.g. 0.20 or 0).";
+    }
+
+    if (calcPaperPrice.trim() === "") {
+      errors.paperPrice = "Paper price per sheet is required (enter 0 if paper is included).";
+    } else if (isNaN(parseFloat(calcPaperPrice)) || parseFloat(calcPaperPrice) < 0) {
+      errors.paperPrice = "Enter a valid paper price (e.g. 0.05 or 0).";
+    }
+
+    if (calcFinishingId !== "none") {
+      if (calcFinishingPrice.trim() === "") {
+        errors.finishingPrice = "Finishing price is required.";
+      } else if (isNaN(parseFloat(calcFinishingPrice)) || parseFloat(calcFinishingPrice) < 0) {
+        errors.finishingPrice = "Enter a valid finishing price (e.g. 2.50 or 0).";
+      }
+    }
+
+    const sPrice = parseFloat(calcServicePrice) || 0;
+    const pPrice = parseFloat(calcPaperPrice) || 0;
+    const fPrice = parseFloat(calcFinishingPrice) || 0;
+    if (!errors.servicePrice && !errors.paperPrice && sPrice === 0 && pPrice === 0 && fPrice === 0) {
+      errors.servicePrice = "Total charge cannot be RM 0.00. Please enter a service or paper price.";
+    }
+
+    return errors;
   };
 
-  const addCustomPrintToCart = () => {
-    const price = computeCalcPrice();
+  const addCustomPrintToCart = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setCalcSubmitted(true);
+
+    const errors = validateCalcForm();
+    setCalcErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    const breakdown = computeCalcBreakdown();
+    const price = breakdown.grandTotal;
     const serviceProduct = products.find((p) => p.isService) || { id: 1 };
     const material = getSelectedMaterial();
     const finishing = getSelectedFinishing();
-    const effectiveRate = computeEffectivePageRate();
 
     const serviceLabel = calcServiceType === "print" ? "Printing" : "Photocopy";
     const sideLabel = calcSides === "single" ? "1-Sided" : "2-Sided (Duplex)";
     const colorLabel = calcColorMode === "bw" ? "B&W" : "Full Color";
 
-    const sheetsPerCopy = calcSides === "double" ? Math.ceil(calcPages / 2) : calcPages;
-    const totalSheets = sheetsPerCopy * calcCopies;
+    const pages = Math.max(1, parseInt(calcPages) || 1);
+    const copies = Math.max(1, parseInt(calcCopies) || 1);
+    const sheetsPerCopy = calcSides === "double" ? Math.ceil(pages / 2) : pages;
+    const totalSheets = sheetsPerCopy * copies;
 
     let paperBarcode = "RAW-A4-70G";
     if (calcPaperSize === "A3") {
@@ -300,14 +389,14 @@ export default function PosPage() {
       {
         barcode: paperBarcode,
         quantity: totalSheets,
-        name: material.name.replace(/ \(\+RM.*\)/, ""),
+        name: material.name,
       },
     ];
 
     if (calcFinishingId === "comb") {
       consumables.push({
         barcode: "RAW-COMB-12",
-        quantity: calcCopies,
+        quantity: copies,
         name: "Plastic Comb Spine",
       });
     } else if (calcFinishingId === "laminate") {
@@ -318,12 +407,11 @@ export default function PosPage() {
       });
     }
 
-    const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${material.name.replace(
-      / \(\+RM.*\)/,
-      ""
-    )} | ${calcPages} pgs × ${calcCopies} set${calcCopies > 1 ? "s" : ""} @ RM ${effectiveRate.toFixed(
-      2
-    )}/pg${finishing.id !== "none" ? ` + ${finishing.name.replace(/ \(\+RM.*\)/, "")}` : ""}`;
+    const sRate = parseFloat(calcServicePrice) || 0;
+    const pRate = parseFloat(calcPaperPrice) || 0;
+    const fRate = parseFloat(calcFinishingPrice) || 0;
+
+    const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${material.name} | ${pages} pgs × ${copies} set${copies > 1 ? "s" : ""} | Srv: RM ${sRate.toFixed(2)}/pg + Paper: RM ${pRate.toFixed(2)}/sht${finishing.id !== "none" ? ` + ${finishing.name} (RM ${fRate.toFixed(2)})` : ""}`;
 
     setCart((prev) => [
       ...prev,
@@ -467,7 +555,7 @@ export default function PosPage() {
         <div className="flex items-center gap-2">
           {/* Custom Print Calculator Button */}
           <button
-            onClick={() => setCalcModalOpen(true)}
+            onClick={() => openServiceConfigurator("print")}
             className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-700 transition"
           >
             <Sparkles className="w-4 h-4" />
@@ -767,248 +855,438 @@ export default function PosPage() {
           <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[92vh] flex flex-col">
             <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-5 text-white flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2.5">
-                <Printer className="w-5 h-5 text-white" />
+                <div className="p-2 bg-white/10 rounded-xl">
+                  <Printer className="w-5 h-5 text-white" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-sm">Print & Photocopy Matrix Configurator</h3>
-                  <p className="text-[11px] text-blue-100">Combinations of size, color, duplex & materials</p>
+                  <h3 className="font-bold text-sm">Custom Print & Photocopy Calculator</h3>
+                  <p className="text-[11px] text-blue-100">Manual price entry & job specifications</p>
                 </div>
               </div>
-              <button onClick={() => setCalcModalOpen(false)} className="text-white/80 hover:text-white">
+              <button
+                type="button"
+                onClick={() => setCalcModalOpen(false)}
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1 text-slate-700 dark:text-slate-200">
-              {/* Service Type */}
-              <div>
-                <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">{t("print_type")}</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCalcServiceType("print")}
-                    className={`py-2 px-3 rounded-xl font-bold border transition ${
-                      calcServiceType === "print"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-                    }`}
-                  >
-                    Printing Service (Digital Print)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCalcServiceType("copy")}
-                    className={`py-2 px-3 rounded-xl font-bold border transition ${
-                      calcServiceType === "copy"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-                    }`}
-                  >
-                    Photocopy Service (Fotostat)
-                  </button>
+            <form onSubmit={addCustomPrintToCart} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1 text-slate-700 dark:text-slate-200">
+                {/* Form Requirement Notice */}
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <div className="text-[11px] leading-tight">
+                    <span className="font-bold">Required Form:</span> Default prices for services and paper materials have been removed. Please enter the service rate and paper price for this order.
+                  </div>
                 </div>
-              </div>
 
-              {/* Paper Size & Color Mode Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Paper Size */}
+                {/* Service Type */}
                 <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">Paper Size</label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {(["A4", "A3", "A5", "B5"] as PaperSize[]).map((size) => (
+                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                    {t("print_type")} <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCalcServiceType("print")}
+                      className={`py-2 px-3 rounded-xl font-bold border transition ${
+                        calcServiceType === "print"
+                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      Printing Service (Digital Print)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCalcServiceType("copy")}
+                      className={`py-2 px-3 rounded-xl font-bold border transition ${
+                        calcServiceType === "copy"
+                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      Photocopy Service (Fotostat)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Paper Size & Color Mode Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Paper Size */}
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      Paper Size <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {(["A4", "A3", "A5", "B5"] as PaperSize[]).map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setCalcPaperSize(size)}
+                          className={`py-2 rounded-xl font-bold border text-center transition ${
+                            calcPaperSize === size
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                              : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Color Mode */}
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      Color Mode <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
-                        key={size}
                         type="button"
-                        onClick={() => setCalcPaperSize(size)}
-                        className={`py-2 rounded-xl font-bold border text-center transition ${
-                          calcPaperSize === size
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                        onClick={() => setCalcColorMode("bw")}
+                        className={`py-2 px-2 rounded-xl font-bold border transition ${
+                          calcColorMode === "bw"
+                            ? "bg-slate-900 text-white border-slate-900"
                             : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                         }`}
                       >
-                        {size}
+                        B&W (Grayscale)
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => setCalcColorMode("color")}
+                        className={`py-2 px-2 rounded-xl font-bold border transition ${
+                          calcColorMode === "color"
+                            ? "bg-gradient-to-r from-rose-500 to-amber-500 text-white border-transparent"
+                            : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                        }`}
+                      >
+                        Full Color
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Color Mode */}
+                {/* Sides / Duplex */}
                 <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">Color Mode</label>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                    Sides / Duplex <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setCalcColorMode("bw")}
-                      className={`py-2 px-2 rounded-xl font-bold border transition ${
-                        calcColorMode === "bw"
-                          ? "bg-slate-900 text-white border-slate-900"
+                      onClick={() => setCalcSides("single")}
+                      className={`py-2 px-3 rounded-xl font-bold border transition ${
+                        calcSides === "single"
+                          ? "bg-blue-600 text-white border-blue-600"
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                       }`}
                     >
-                      B&W (Grayscale)
+                      1-Sided (Single Page per Sheet)
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCalcColorMode("color")}
-                      className={`py-2 px-2 rounded-xl font-bold border transition ${
-                        calcColorMode === "color"
-                          ? "bg-gradient-to-r from-rose-500 to-amber-500 text-white border-transparent"
+                      onClick={() => setCalcSides("double")}
+                      className={`py-2 px-3 rounded-xl font-bold border transition ${
+                        calcSides === "double"
+                          ? "bg-blue-600 text-white border-blue-600"
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                       }`}
                     >
-                      Full Color
+                      2-Sided (Duplex / Back-to-Back)
                     </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Sides / Duplex */}
-              <div>
-                <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">Sides / Duplex</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCalcSides("single")}
-                    className={`py-2 px-3 rounded-xl font-bold border transition ${
-                      calcSides === "single"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-                    }`}
-                  >
-                    1-Sided (Single Page per Sheet)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCalcSides("double")}
-                    className={`py-2 px-3 rounded-xl font-bold border transition ${
-                      calcSides === "double"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-                    }`}
-                  >
-                    2-Sided (Duplex / Back-to-Back)
-                  </button>
-                </div>
-              </div>
-
-              {/* Paper Material & Finishing Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Paper Material */}
-                <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">Paper / Material Type</label>
-                  <select
-                    value={calcMaterialId}
-                    onChange={(e) => setCalcMaterialId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold text-slate-800 dark:text-slate-100"
-                  >
-                    {PAPER_MATERIAL_OPTIONS.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Finishing */}
-                <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">{t("finishing")}</label>
-                  <select
-                    value={calcFinishingId}
-                    onChange={(e) => setCalcFinishingId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold text-slate-800 dark:text-slate-100"
-                  >
-                    {FINISHING_OPTIONS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Pages, Copies & Custom Rate Override */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                    {t("pages_count")} (Originals)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={calcPages}
-                    onChange={(e) => setCalcPages(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                    {t("copies_count")} (Sets)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={calcCopies}
-                    onChange={(e) => setCalcCopies(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                    Custom Unit Rate (RM)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder={computeEffectivePageRate().toFixed(2)}
-                    value={calcCustomRate}
-                    onChange={(e) => setCalcCustomRate(e.target.value)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-900 dark:text-white placeholder-slate-400"
-                  />
-                </div>
-              </div>
-
-              {/* Price Calculation Summary Breakdown Card */}
-              <div className="p-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-xl space-y-2">
-                <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
-                  <span>
-                    Matrix Base: <strong>RM {getSelectedBaseRate().toFixed(2)}</strong> + Material:{" "}
-                    <strong>+RM {getSelectedMaterial().surcharge.toFixed(2)}</strong>
-                  </span>
-                  <span>
-                    Effective Sheet Rate:{" "}
-                    <strong className="text-blue-700 dark:text-blue-400">
-                      RM {computeEffectivePageRate().toFixed(2)}
-                    </strong>
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>
-                    Auto-consumes: <strong>{(calcSides === "double" ? Math.ceil(calcPages / 2) : calcPages) * calcCopies} sheet{((calcSides === "double" ? Math.ceil(calcPages / 2) : calcPages) * calcCopies) > 1 ? "s" : ""}</strong> of {getSelectedMaterial().name.replace(/ \(\+RM.*\)/, "")}
-                    {getSelectedFinishing().id !== "none" ? ` + ${getSelectedFinishing().name.replace(/ \(\+RM.*\)/, "")}` : ""}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-blue-200/60 dark:border-blue-900/40">
+                {/* Paper Material & Finishing Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Paper Material */}
                   <div>
-                    <span className="text-xs text-blue-700 dark:text-blue-400 font-bold block">Estimated Price:</span>
-                    <span className="text-xl font-black text-blue-950 dark:text-blue-200">
-                      {formatMYR(computeCalcPrice())}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                      ({calcPages} pgs × RM {computeEffectivePageRate().toFixed(2)} × {calcCopies} set
-                      {calcCopies > 1 ? "s" : ""}
-                      {getSelectedFinishing().cost > 0 ? ` + finishing` : ""})
-                    </span>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      Paper / Material Type <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={calcMaterialId}
+                      onChange={(e) => setCalcMaterialId(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold text-slate-800 dark:text-slate-100"
+                    >
+                      {PAPER_MATERIAL_OPTIONS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <button
-                    type="button"
-                    onClick={addCustomPrintToCart}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition active:scale-95"
-                  >
-                    {t("add_to_bill")}
-                  </button>
+
+                  {/* Finishing */}
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      {t("finishing")}
+                    </label>
+                    <select
+                      value={calcFinishingId}
+                      onChange={(e) => {
+                        setCalcFinishingId(e.target.value);
+                        if (e.target.value === "none") setCalcFinishingPrice("");
+                      }}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold text-slate-800 dark:text-slate-100"
+                    >
+                      {FINISHING_OPTIONS.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                {/* Pages & Copies Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      {t("pages_count")} (Originals) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={calcPages}
+                      onChange={(e) => {
+                        setCalcPages(e.target.value);
+                        if (calcErrors.pages) setCalcErrors((prev) => ({ ...prev, pages: "" }));
+                      }}
+                      className={`w-full p-2 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-slate-900 dark:text-white ${
+                        calcSubmitted && calcErrors.pages
+                          ? "border-rose-500 ring-1 ring-rose-500"
+                          : "border-slate-200 dark:border-slate-700"
+                      }`}
+                    />
+                    {calcSubmitted && calcErrors.pages && (
+                      <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.pages}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      {t("copies_count")} (Sets) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={calcCopies}
+                      onChange={(e) => {
+                        setCalcCopies(e.target.value);
+                        if (calcErrors.copies) setCalcErrors((prev) => ({ ...prev, copies: "" }));
+                      }}
+                      className={`w-full p-2 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-slate-900 dark:text-white ${
+                        calcSubmitted && calcErrors.copies
+                          ? "border-rose-500 ring-1 ring-rose-500"
+                          : "border-slate-200 dark:border-slate-700"
+                      }`}
+                    />
+                    {calcSubmitted && calcErrors.copies && (
+                      <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.copies}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* REQUIRED MANUAL PRICING SECTION */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Pricing Rates</span>
+                      <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold rounded-full">
+                        Required Form
+                      </span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">No default prices applied</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Service Rate */}
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                        Service Rate (RM / page) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                          RM
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          placeholder="e.g. 0.20"
+                          value={calcServicePrice}
+                          onChange={(e) => {
+                            setCalcServicePrice(e.target.value);
+                            if (calcErrors.servicePrice) setCalcErrors((prev) => ({ ...prev, servicePrice: "" }));
+                          }}
+                          className={`w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-900 border rounded-xl font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                            calcSubmitted && calcErrors.servicePrice
+                              ? "border-rose-500 ring-1 ring-rose-500"
+                              : "border-slate-200 dark:border-slate-700"
+                          }`}
+                        />
+                      </div>
+                      {calcSubmitted && calcErrors.servicePrice ? (
+                        <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.servicePrice}</p>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 mt-1">Printing or photocopy fee per page</p>
+                      )}
+                    </div>
+
+                    {/* Paper Price */}
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                        Paper Price (RM / sheet) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                          RM
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          placeholder="0.00 if included / free"
+                          value={calcPaperPrice}
+                          onChange={(e) => {
+                            setCalcPaperPrice(e.target.value);
+                            if (calcErrors.paperPrice) setCalcErrors((prev) => ({ ...prev, paperPrice: "" }));
+                          }}
+                          className={`w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-900 border rounded-xl font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                            calcSubmitted && calcErrors.paperPrice
+                              ? "border-rose-500 ring-1 ring-rose-500"
+                              : "border-slate-200 dark:border-slate-700"
+                          }`}
+                        />
+                      </div>
+                      {calcSubmitted && calcErrors.paperPrice ? (
+                        <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.paperPrice}</p>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 mt-1">Paper cost per sheet (enter 0 if included)</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Optional / Required Finishing Price if selected */}
+                  {calcFinishingId !== "none" && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                        {getSelectedFinishing().name} Price (RM) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                          RM
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          placeholder="e.g. 2.50 (or 0 if free)"
+                          value={calcFinishingPrice}
+                          onChange={(e) => {
+                            setCalcFinishingPrice(e.target.value);
+                            if (calcErrors.finishingPrice) setCalcErrors((prev) => ({ ...prev, finishingPrice: "" }));
+                          }}
+                          className={`w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-900 border rounded-xl font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                            calcSubmitted && calcErrors.finishingPrice
+                              ? "border-rose-500 ring-1 ring-rose-500"
+                              : "border-slate-200 dark:border-slate-700"
+                          }`}
+                        />
+                      </div>
+                      {calcSubmitted && calcErrors.finishingPrice && (
+                        <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.finishingPrice}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Price Calculation Summary Breakdown Card */}
+                {(() => {
+                  const breakdown = computeCalcBreakdown();
+                  const pages = Math.max(1, parseInt(calcPages) || 1);
+                  const copies = Math.max(1, parseInt(calcCopies) || 1);
+                  const totalPages = pages * copies;
+                  const totalSheets = getTotalSheets();
+                  const material = getSelectedMaterial();
+                  const finishing = getSelectedFinishing();
+
+                  return (
+                    <div className="p-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-xl space-y-2">
+                      <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
+                        <span>
+                          Breakdown: Srv: <strong>{calcServicePrice.trim() !== "" ? `RM ${(parseFloat(calcServicePrice) || 0).toFixed(2)}/pg` : "Required"}</strong> + Paper:{" "}
+                          <strong>{calcPaperPrice.trim() !== "" ? `RM ${(parseFloat(calcPaperPrice) || 0).toFixed(2)}/sht` : "Required"}</strong>
+                        </span>
+                        <span>
+                          Combined Sheet Rate:{" "}
+                          <strong className="text-blue-700 dark:text-blue-400">
+                            {breakdown.hasServicePrice && breakdown.hasPaperPrice
+                              ? `RM ${breakdown.effectiveSheetRate.toFixed(2)}`
+                              : "--"}
+                          </strong>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>
+                          Auto-consumes: <strong>{totalSheets} sheet{totalSheets > 1 ? "s" : ""}</strong> of {material.name}
+                          {finishing.id !== "none" ? ` + ${finishing.name}` : ""}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-blue-200/60 dark:border-blue-900/40">
+                        <div>
+                          <span className="text-xs text-blue-700 dark:text-blue-400 font-bold block">
+                            Total Job Price:
+                          </span>
+                          <span className="text-xl font-black text-blue-950 dark:text-blue-200">
+                            {breakdown.isConfigured
+                              ? formatMYR(breakdown.grandTotal)
+                              : "RM --.--"}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                            {breakdown.isConfigured ? (
+                              <>
+                                ({totalPages} pgs srv + {totalSheets} paper shts
+                                {finishing.id !== "none" ? ` + finishing` : ""})
+                              </>
+                            ) : (
+                              "Fill required pricing fields above"
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCalcModalOpen(false)}
+                            className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition active:scale-95"
+                          >
+                            {t("add_to_bill")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
