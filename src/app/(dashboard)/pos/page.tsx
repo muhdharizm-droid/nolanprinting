@@ -19,7 +19,6 @@ import {
   X,
   Clock,
   ShoppingCart,
-  AlertCircle,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { formatMYR } from "@/lib/utils";
@@ -852,14 +851,6 @@ export default function PosPage() {
 
             <form onSubmit={addCustomPrintToCart} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1 text-slate-700 dark:text-slate-200">
-                {/* Form Requirement Notice */}
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                  <div className="text-[11px] leading-tight">
-                    <span className="font-bold">Required Form:</span> Please enter the price rate for this order.
-                  </div>
-                </div>
-
                 {/* Service Type */}
                 <div>
                   <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
@@ -1071,18 +1062,8 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                {/* REQUIRED MANUAL PRICING SECTION - SINGLE PRICE RATE */}
+                {/* PRICING RATE SECTION */}
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                      <span>Pricing Rate</span>
-                      <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold rounded-full">
-                        Required
-                      </span>
-                    </span>
-                    <span className="text-[10px] text-slate-400">Single rate per page</span>
-                  </div>
-
                   <div>
                     <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
                       Price Rate (RM / page) <span className="text-rose-500">*</span>
@@ -1109,10 +1090,8 @@ export default function PosPage() {
                         }`}
                       />
                     </div>
-                    {calcSubmitted && calcErrors.unitPrice ? (
+                    {calcSubmitted && calcErrors.unitPrice && (
                       <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.unitPrice}</p>
-                    ) : (
-                      <p className="text-[10px] text-slate-400 mt-1">Total charge per printed page (covers service & paper)</p>
                     )}
                   </div>
 
@@ -1197,7 +1176,7 @@ export default function PosPage() {
                                 {finishing.id !== "none" ? ` + finishing` : ""})
                               </>
                             ) : (
-                              "Enter required price rate above"
+                              "Enter price rate above"
                             )}
                           </span>
                         </div>
