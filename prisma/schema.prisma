@@ -108,6 +108,7 @@ model Sale {
   total          Decimal    @db.Decimal(10, 2)
   paymentMethod  String     @map("payment_method")
   status         SaleStatus @default(completed)
+  voidReason     String?    @map("void_reason") @db.Text
   createdAt      DateTime   @default(now()) @map("created_at")
 
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)

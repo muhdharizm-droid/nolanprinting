@@ -65,12 +65,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { saleId } = await req.json();
+    const { saleId, voidReason } = await req.json();
     const id = parseInt(saleId, 10);
 
     if (isNaN(id)) {
       return NextResponse.json({ success: false, message: "Invalid sale ID" }, { status: 400 });
     }
+
+    const cleanReason =
+      typeof voidReason === "string" && voidReason.trim().length > 0
+        ? voidReason.trim()
+        : "No reason specified";
 
     const result = await db.$transaction(async (tx) => {
       const sale = await tx.sale.findUnique({
@@ -91,18 +96,21 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Mark sale as voided
+      // Mark sale as voided with reason
       const updatedSale = await tx.sale.update({
         where: { id },
-        data: { status: "voided" },
+        data: {
+          status: "voided",
+          voidReason: cleanReason,
+        },
       });
 
-      // Log activity
+      // Log activity with void reason
       await tx.activityLog.create({
         data: {
           userId: user.id,
           action: "Sale Voided",
-          details: `Voided transaction #${id} and restored inventory stock.`,
+          details: `Voided transaction #${id} (Reason: ${cleanReason}) and restored inventory stock.`,
         },
       });
 

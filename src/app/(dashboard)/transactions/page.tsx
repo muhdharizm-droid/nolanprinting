@@ -27,6 +27,7 @@ interface Sale {
   total: number | string;
   paymentMethod: string;
   status: "completed" | "voided";
+  voidReason?: string | null;
   createdAt: string;
   user: { id: number; username: string; fullName: string };
   items: Array<{
@@ -49,6 +50,20 @@ export default function TransactionsPage() {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [receiptFormat, setReceiptFormat] = useState<"80mm" | "58mm" | "a4" | "a5">("80mm");
   const [voiding, setVoiding] = useState(false);
+
+  // Void Reason Modal State
+  const [saleToVoid, setSaleToVoid] = useState<Sale | null>(null);
+  const [voidReasonText, setVoidReasonText] = useState("");
+  const [voidError, setVoidError] = useState("");
+
+  const voidPresets = [
+    { id: "cashier_error", text: t("void_reason_cashier_error") },
+    { id: "customer_cancel", text: t("void_reason_customer_cancel") },
+    { id: "defective_print", text: t("void_reason_defective_print") },
+    { id: "duplicate", text: t("void_reason_duplicate") },
+    { id: "payment_issue", text: t("void_reason_payment_issue") },
+    { id: "other", text: t("void_reason_other") },
+  ];
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -76,29 +91,58 @@ export default function TransactionsPage() {
     fetchTransactions();
   };
 
-  // Void Sale
-  const handleVoidSale = async (saleId: number) => {
-    const confirmMsg = `${t("void_confirm_title")} #${saleId}?\n${t("void_confirm_desc")}`;
-    if (!confirm(confirmMsg)) {
+  const openVoidModal = (sale: Sale) => {
+    setSaleToVoid(sale);
+    setVoidReasonText("");
+    setVoidError("");
+  };
+
+  const closeVoidModal = () => {
+    if (voiding) return;
+    setSaleToVoid(null);
+    setVoidReasonText("");
+    setVoidError("");
+  };
+
+  const handlePresetSelect = (presetText: string) => {
+    setVoidReasonText(presetText);
+    setVoidError("");
+  };
+
+  // Submit Void Sale with Reason
+  const handleConfirmVoid = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleToVoid) return;
+
+    const trimmedReason = voidReasonText.trim();
+    if (!trimmedReason) {
+      setVoidError(t("void_reason_required"));
       return;
     }
 
     setVoiding(true);
+    setVoidError("");
     try {
       const res = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ saleId }),
+        body: JSON.stringify({
+          saleId: saleToVoid.id,
+          voidReason: trimmedReason,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.message || "Failed to void transaction");
       }
+
+      const voidedId = saleToVoid.id;
+      setSaleToVoid(null);
       setSelectedSale(null);
       fetchTransactions();
-      alert(`${t("sale_number")} #${saleId} ${t("void_success")}`);
+      alert(`${t("sale_number")} #${voidedId} ${t("void_success")}`);
     } catch (err: any) {
-      alert(err.message);
+      setVoidError(err.message || "Failed to void transaction");
     } finally {
       setVoiding(false);
     }
@@ -215,29 +259,50 @@ export default function TransactionsPage() {
                       {formatMYR(sale.total)}
                     </td>
                     <td className="p-3.5 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          sale.status === "completed"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                            : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 line-through"
-                        }`}
-                      >
-                        {sale.status === "completed" ? (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            sale.status === "completed"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 line-through"
+                          }`}
+                        >
+                          {sale.status === "completed" ? (
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                          )}
+                          <span>{sale.status === "completed" ? t("completed") : t("voided")}</span>
+                        </span>
+                        {sale.status === "voided" && sale.voidReason && (
+                          <span
+                            className="text-[10px] text-rose-600 dark:text-rose-400 max-w-[140px] truncate font-medium cursor-help"
+                            title={`${t("void_reason_label")} ${sale.voidReason}`}
+                          >
+                            {sale.voidReason}
+                          </span>
                         )}
-                        <span>{sale.status === "completed" ? t("completed") : t("voided")}</span>
-                      </span>
+                      </div>
                     </td>
                     <td className="p-3.5 text-right">
-                      <button
-                        onClick={() => setSelectedSale(sale)}
-                        className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition"
-                        title={t("view")}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setSelectedSale(sale)}
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition"
+                          title={t("view")}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {sale.status === "completed" && (
+                          <button
+                            onClick={() => openVoidModal(sale)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+                            title={t("void_transaction_restore")}
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -295,6 +360,24 @@ export default function TransactionsPage() {
               ))}
             </div>
 
+            {/* Void Notice Banner if Voided */}
+            {selectedSale.status === "voided" && (
+              <div className="mx-4 mt-3 p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs flex items-start gap-2.5 text-rose-800 dark:text-rose-300 flex-shrink-0">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold flex items-center gap-1.5 text-rose-900 dark:text-rose-200">
+                    <span className="px-1.5 py-0.5 rounded bg-rose-200 dark:bg-rose-900 text-[10px] uppercase font-black">
+                      {t("voided_badge")}
+                    </span>
+                    <span>{t("void_reason_label")}</span>
+                  </div>
+                  <p className="mt-1 text-slate-700 dark:text-slate-300 italic">
+                    &ldquo;{selectedSale.voidReason || "No reason specified"}&rdquo;
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Printable Receipt Area */}
             <div className="p-4 bg-slate-100 dark:bg-slate-950 flex-1 overflow-y-auto flex justify-center">
               <ThermalReceipt
@@ -315,6 +398,7 @@ export default function TransactionsPage() {
                 total={selectedSale.total}
                 paymentMethod={selectedSale.paymentMethod}
                 isVoided={selectedSale.status === "voided"}
+                voidReason={selectedSale.voidReason}
               />
             </div>
 
@@ -330,7 +414,7 @@ export default function TransactionsPage() {
 
               {selectedSale.status === "completed" && (
                 <button
-                  onClick={() => handleVoidSale(selectedSale.id)}
+                  onClick={() => openVoidModal(selectedSale)}
                   disabled={voiding}
                   className="w-full py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition disabled:opacity-50"
                 >
@@ -339,6 +423,145 @@ export default function TransactionsPage() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Void Transaction Reason Form */}
+      {saleToVoid && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col transition-all">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <RotateCcw className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    {t("void_sale_modal_title")}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    {t("sale_number")} #{saleToVoid.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeVoidModal}
+                disabled={voiding}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleConfirmVoid} className="p-5 space-y-4">
+              {/* Transaction Summary Card */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-200 dark:border-slate-700/60 text-xs grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">{t("total")}</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">
+                    {formatMYR(saleToVoid.total)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">{t("staff_cashier")}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                    {saleToVoid.user?.fullName || saleToVoid.user?.username}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">{t("items_purchased")}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {saleToVoid.items.reduce((s, i) => s + i.quantity, 0)} {t("units")} ({saleToVoid.items.length} {t("items_count")})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">{t("method")}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {translatePaymentMethod(saleToVoid.paymentMethod, language)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Warning Notice */}
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-xs flex items-start gap-2.5 text-rose-800 dark:text-rose-300">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed">
+                  {t("confirm_void_warning")}
+                </p>
+              </div>
+
+              {/* Quick Preset Reason Buttons */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t("select_void_reason_preset")}
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {voidPresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handlePresetSelect(preset.text)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${
+                        voidReasonText === preset.text
+                          ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {preset.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Void Reason Required Textarea */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {t("void_reason_required")} <span className="text-rose-500">*</span>
+                  </label>
+                </div>
+                <textarea
+                  rows={3}
+                  value={voidReasonText}
+                  onChange={(e) => {
+                    setVoidReasonText(e.target.value);
+                    setVoidError("");
+                  }}
+                  placeholder={t("enter_void_reason_placeholder")}
+                  required
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 resize-none font-medium"
+                />
+                {voidError && (
+                  <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+                    {voidError}
+                  </p>
+                )}
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={closeVoidModal}
+                  disabled={voiding}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={voiding || !voidReasonText.trim()}
+                  className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl shadow-md transition flex items-center gap-1.5"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${voiding ? "animate-spin" : ""}`} />
+                  <span>{voiding ? t("voiding_in_progress") : t("confirm_void_btn")}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

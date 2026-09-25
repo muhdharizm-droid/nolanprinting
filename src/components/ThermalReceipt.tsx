@@ -26,6 +26,7 @@ export interface ThermalReceiptProps {
   cashReceived?: number | string;
   changeDue?: number | string;
   isVoided?: boolean;
+  voidReason?: string | null;
   paperFormat?: "80mm" | "58mm" | "a4" | "a5";
 }
 
@@ -43,6 +44,7 @@ export default function ThermalReceipt({
   cashReceived,
   changeDue,
   isVoided = false,
+  voidReason,
   paperFormat = "80mm",
 }: ThermalReceiptProps) {
   const { t, language } = useI18n();
@@ -86,8 +88,13 @@ export default function ThermalReceipt({
         </div>
 
         {isVoided && (
-          <div className="my-4 p-2 bg-red-100 border border-red-500 text-red-700 font-black text-xs text-center uppercase tracking-widest rounded-lg">
-            {t("voided_transaction_banner")}
+          <div className="my-4 p-3 bg-red-50 border border-red-500 text-red-700 font-bold text-xs text-center rounded-lg">
+            <div className="font-black uppercase tracking-widest">{t("voided_transaction_banner")}</div>
+            {voidReason && (
+              <div className="text-[11px] font-semibold mt-1 normal-case text-red-800">
+                <span className="font-bold">{t("void_reason_label")}</span> {voidReason}
+              </div>
+            )}
           </div>
         )}
 
@@ -345,8 +352,13 @@ export default function ThermalReceipt({
         <p className="text-[10px] text-neutral-600 font-semibold">Tel: 013-2707949</p>
 
         {isVoided && (
-          <div className="mt-2 py-1 bg-red-100 border border-red-400 text-red-700 font-black text-xs uppercase tracking-widest rounded">
-            {t("voided_transaction_banner")}
+          <div className="mt-2 py-1.5 px-2 bg-red-100 border border-red-400 text-red-700 text-center rounded">
+            <div className="font-black text-xs uppercase tracking-widest">{t("voided_transaction_banner")}</div>
+            {voidReason && (
+              <div className="text-[9px] font-semibold mt-0.5 normal-case text-red-900 leading-tight">
+                {t("void_reason_label")} {voidReason}
+              </div>
+            )}
           </div>
         )}
       </div>
