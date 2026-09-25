@@ -856,7 +856,7 @@ export default function PosPage() {
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                   <div className="text-[11px] leading-tight">
-                    <span className="font-bold">Required Form:</span> Default prices have been removed. Please enter the price rate for this order.
+                    <span className="font-bold">Required Form:</span> Please enter the price rate for this order.
                   </div>
                 </div>
 
