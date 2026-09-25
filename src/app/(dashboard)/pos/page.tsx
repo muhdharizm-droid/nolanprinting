@@ -107,8 +107,7 @@ export default function PosPage() {
   const [calcFinishingId, setCalcFinishingId] = useState<string>("none");
   const [calcPages, setCalcPages] = useState<string>("1");
   const [calcCopies, setCalcCopies] = useState<string>("1");
-  const [calcServicePrice, setCalcServicePrice] = useState<string>(""); // Required, no default price
-  const [calcPaperPrice, setCalcPaperPrice] = useState<string>(""); // Required, no default price
+  const [calcUnitPrice, setCalcUnitPrice] = useState<string>(""); // Required single price rate (RM / page)
   const [calcFinishingPrice, setCalcFinishingPrice] = useState<string>(""); // Required if finishing !== 'none'
   const [calcErrors, setCalcErrors] = useState<Record<string, string>>({});
   const [calcSubmitted, setCalcSubmitted] = useState<boolean>(false);
@@ -162,8 +161,7 @@ export default function PosPage() {
     setCalcFinishingId("none");
     setCalcPages("1");
     setCalcCopies("1");
-    setCalcServicePrice("");
-    setCalcPaperPrice("");
+    setCalcUnitPrice("");
     setCalcFinishingPrice("");
     setCalcErrors({});
     setCalcSubmitted(false);
@@ -271,16 +269,13 @@ export default function PosPage() {
     const totalPages = pages * copies;
     const totalSheets = getTotalSheets();
 
-    const servicePriceNum = parseFloat(calcServicePrice);
-    const paperPriceNum = parseFloat(calcPaperPrice);
+    const unitPriceNum = parseFloat(calcUnitPrice);
     const finishingPriceNum = parseFloat(calcFinishingPrice);
 
-    const hasServicePrice = calcServicePrice.trim() !== "" && !isNaN(servicePriceNum) && servicePriceNum >= 0;
-    const hasPaperPrice = calcPaperPrice.trim() !== "" && !isNaN(paperPriceNum) && paperPriceNum >= 0;
+    const hasUnitPrice = calcUnitPrice.trim() !== "" && !isNaN(unitPriceNum) && unitPriceNum > 0;
     const hasFinishingPrice = calcFinishingId === "none" || (calcFinishingPrice.trim() !== "" && !isNaN(finishingPriceNum) && finishingPriceNum >= 0);
 
-    const serviceTotal = hasServicePrice ? servicePriceNum * totalPages : 0;
-    const paperTotal = hasPaperPrice ? paperPriceNum * totalSheets : 0;
+    const printTotal = hasUnitPrice ? unitPriceNum * totalPages : 0;
 
     let finishingTotal = 0;
     if (calcFinishingId !== "none" && hasFinishingPrice) {
@@ -291,19 +286,16 @@ export default function PosPage() {
       }
     }
 
-    const grandTotal = Math.round((serviceTotal + paperTotal + finishingTotal) * 100) / 100;
-    const effectiveSheetRate = totalPages > 0 ? Math.round(((serviceTotal + paperTotal) / totalPages) * 100) / 100 : 0;
+    const grandTotal = Math.round((printTotal + finishingTotal) * 100) / 100;
 
     return {
-      serviceTotal,
-      paperTotal,
+      printTotal,
       finishingTotal,
       grandTotal,
-      effectiveSheetRate,
-      hasServicePrice,
-      hasPaperPrice,
+      unitPriceNum: hasUnitPrice ? unitPriceNum : 0,
+      hasUnitPrice,
       hasFinishingPrice,
-      isConfigured: hasServicePrice && hasPaperPrice && hasFinishingPrice,
+      isConfigured: hasUnitPrice && hasFinishingPrice,
     };
   };
 
@@ -320,16 +312,10 @@ export default function PosPage() {
       errors.copies = "Copies count is required (min 1).";
     }
 
-    if (calcServicePrice.trim() === "") {
-      errors.servicePrice = "Service price per page is required.";
-    } else if (isNaN(parseFloat(calcServicePrice)) || parseFloat(calcServicePrice) < 0) {
-      errors.servicePrice = "Enter a valid service price (e.g. 0.20 or 0).";
-    }
-
-    if (calcPaperPrice.trim() === "") {
-      errors.paperPrice = "Paper price per sheet is required (enter 0 if paper is included).";
-    } else if (isNaN(parseFloat(calcPaperPrice)) || parseFloat(calcPaperPrice) < 0) {
-      errors.paperPrice = "Enter a valid paper price (e.g. 0.05 or 0).";
+    if (calcUnitPrice.trim() === "") {
+      errors.unitPrice = "Price rate per page is required.";
+    } else if (isNaN(parseFloat(calcUnitPrice)) || parseFloat(calcUnitPrice) <= 0) {
+      errors.unitPrice = "Enter a valid price rate greater than RM 0.00 (e.g. 0.20 or 0.50).";
     }
 
     if (calcFinishingId !== "none") {
@@ -338,13 +324,6 @@ export default function PosPage() {
       } else if (isNaN(parseFloat(calcFinishingPrice)) || parseFloat(calcFinishingPrice) < 0) {
         errors.finishingPrice = "Enter a valid finishing price (e.g. 2.50 or 0).";
       }
-    }
-
-    const sPrice = parseFloat(calcServicePrice) || 0;
-    const pPrice = parseFloat(calcPaperPrice) || 0;
-    const fPrice = parseFloat(calcFinishingPrice) || 0;
-    if (!errors.servicePrice && !errors.paperPrice && sPrice === 0 && pPrice === 0 && fPrice === 0) {
-      errors.servicePrice = "Total charge cannot be RM 0.00. Please enter a service or paper price.";
     }
 
     return errors;
@@ -407,11 +386,10 @@ export default function PosPage() {
       });
     }
 
-    const sRate = parseFloat(calcServicePrice) || 0;
-    const pRate = parseFloat(calcPaperPrice) || 0;
+    const uRate = parseFloat(calcUnitPrice) || 0;
     const fRate = parseFloat(calcFinishingPrice) || 0;
 
-    const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${material.name} | ${pages} pgs × ${copies} set${copies > 1 ? "s" : ""} | Srv: RM ${sRate.toFixed(2)}/pg + Paper: RM ${pRate.toFixed(2)}/sht${finishing.id !== "none" ? ` + ${finishing.name} (RM ${fRate.toFixed(2)})` : ""}`;
+    const details = `${calcPaperSize} | ${colorLabel} | ${sideLabel} | ${material.name} | ${pages} pgs × ${copies} set${copies > 1 ? "s" : ""} @ RM ${uRate.toFixed(2)}/pg${finishing.id !== "none" ? ` + ${finishing.name} (RM ${fRate.toFixed(2)})` : ""}`;
 
     setCart((prev) => [
       ...prev,
@@ -878,7 +856,7 @@ export default function PosPage() {
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                   <div className="text-[11px] leading-tight">
-                    <span className="font-bold">Required Form:</span> Default prices for services and paper materials have been removed. Please enter the service rate and paper price for this order.
+                    <span className="font-bold">Required Form:</span> Default prices have been removed. Please enter the price rate for this order.
                   </div>
                 </div>
 
@@ -1093,86 +1071,49 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                {/* REQUIRED MANUAL PRICING SECTION */}
+                {/* REQUIRED MANUAL PRICING SECTION - SINGLE PRICE RATE */}
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                      <span>Pricing Rates</span>
+                      <span>Pricing Rate</span>
                       <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold rounded-full">
-                        Required Form
+                        Required
                       </span>
                     </span>
-                    <span className="text-[10px] text-slate-400">No default prices applied</span>
+                    <span className="text-[10px] text-slate-400">Single rate per page</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Service Rate */}
-                    <div>
-                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
-                        Service Rate (RM / page) <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
-                          RM
-                        </span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          required
-                          placeholder="e.g. 0.20"
-                          value={calcServicePrice}
-                          onChange={(e) => {
-                            setCalcServicePrice(e.target.value);
-                            if (calcErrors.servicePrice) setCalcErrors((prev) => ({ ...prev, servicePrice: "" }));
-                          }}
-                          className={`w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-900 border rounded-xl font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
-                            calcSubmitted && calcErrors.servicePrice
-                              ? "border-rose-500 ring-1 ring-rose-500"
-                              : "border-slate-200 dark:border-slate-700"
-                          }`}
-                        />
-                      </div>
-                      {calcSubmitted && calcErrors.servicePrice ? (
-                        <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.servicePrice}</p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1">Printing or photocopy fee per page</p>
-                      )}
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                      Price Rate (RM / page) <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                        RM
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        placeholder="e.g. 0.20 or 0.50"
+                        value={calcUnitPrice}
+                        onChange={(e) => {
+                          setCalcUnitPrice(e.target.value);
+                          if (calcErrors.unitPrice) setCalcErrors((prev) => ({ ...prev, unitPrice: "" }));
+                        }}
+                        className={`w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-900 border rounded-xl font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                          calcSubmitted && calcErrors.unitPrice
+                            ? "border-rose-500 ring-1 ring-rose-500"
+                            : "border-slate-200 dark:border-slate-700"
+                        }`}
+                      />
                     </div>
-
-                    {/* Paper Price */}
-                    <div>
-                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
-                        Paper Price (RM / sheet) <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
-                          RM
-                        </span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          required
-                          placeholder="0.00 if included / free"
-                          value={calcPaperPrice}
-                          onChange={(e) => {
-                            setCalcPaperPrice(e.target.value);
-                            if (calcErrors.paperPrice) setCalcErrors((prev) => ({ ...prev, paperPrice: "" }));
-                          }}
-                          className={`w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-900 border rounded-xl font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
-                            calcSubmitted && calcErrors.paperPrice
-                              ? "border-rose-500 ring-1 ring-rose-500"
-                              : "border-slate-200 dark:border-slate-700"
-                          }`}
-                        />
-                      </div>
-                      {calcSubmitted && calcErrors.paperPrice ? (
-                        <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.paperPrice}</p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1">Paper cost per sheet (enter 0 if included)</p>
-                      )}
-                    </div>
+                    {calcSubmitted && calcErrors.unitPrice ? (
+                      <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">{calcErrors.unitPrice}</p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 mt-1">Total charge per printed page (covers service & paper)</p>
+                    )}
                   </div>
 
                   {/* Optional / Required Finishing Price if selected */}
@@ -1224,16 +1165,10 @@ export default function PosPage() {
                     <div className="p-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 rounded-xl space-y-2">
                       <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-600 dark:text-slate-300">
                         <span>
-                          Breakdown: Srv: <strong>{calcServicePrice.trim() !== "" ? `RM ${(parseFloat(calcServicePrice) || 0).toFixed(2)}/pg` : "Required"}</strong> + Paper:{" "}
-                          <strong>{calcPaperPrice.trim() !== "" ? `RM ${(parseFloat(calcPaperPrice) || 0).toFixed(2)}/sht` : "Required"}</strong>
+                          Rate: <strong>{calcUnitPrice.trim() !== "" ? `RM ${(parseFloat(calcUnitPrice) || 0).toFixed(2)} / page` : "Required"}</strong>
                         </span>
                         <span>
-                          Combined Sheet Rate:{" "}
-                          <strong className="text-blue-700 dark:text-blue-400">
-                            {breakdown.hasServicePrice && breakdown.hasPaperPrice
-                              ? `RM ${breakdown.effectiveSheetRate.toFixed(2)}`
-                              : "--"}
-                          </strong>
+                          Total Pages: <strong>{totalPages} page{totalPages > 1 ? "s" : ""}</strong>
                         </span>
                       </div>
 
@@ -1258,11 +1193,11 @@ export default function PosPage() {
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                             {breakdown.isConfigured ? (
                               <>
-                                ({totalPages} pgs srv + {totalSheets} paper shts
+                                ({totalPages} pgs @ RM {breakdown.unitPriceNum.toFixed(2)}/pg
                                 {finishing.id !== "none" ? ` + finishing` : ""})
                               </>
                             ) : (
-                              "Fill required pricing fields above"
+                              "Enter required price rate above"
                             )}
                           </span>
                         </div>
