@@ -220,7 +220,7 @@ export default function HomePage() {
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-6 sm:p-8 shadow-xl border border-slate-800 animate-pulse">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-start sm:items-center gap-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10" />
+              <div className="w-32 h-14 sm:w-40 sm:h-16 rounded-2xl bg-white/10 shrink-0" />
               <div className="space-y-2">
                 <div className="h-5 w-36 bg-white/10 rounded-full" />
                 <div className="h-8 w-64 bg-white/20 rounded-xl" />
@@ -285,12 +285,12 @@ export default function HomePage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-4">
             {/* Real Logo */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white/20 shadow-lg bg-white shrink-0">
+            <div className="relative w-32 h-14 sm:w-40 sm:h-16 rounded-2xl overflow-hidden border-2 border-white/20 shadow-lg bg-white shrink-0 p-1.5 flex items-center justify-center">
               <Image
                 src="/images/logo.jpeg"
                 alt="Nolan Printing Logo"
                 fill
-                className="object-cover"
+                className="object-contain"
                 priority
               />
             </div>

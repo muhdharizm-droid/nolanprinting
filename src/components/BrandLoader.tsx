@@ -22,17 +22,17 @@ export default function BrandLoader({
         <div className="absolute -inset-3 bg-gradient-to-r from-blue-600/30 via-indigo-600/30 to-cyan-500/30 rounded-3xl blur-xl animate-pulse" />
 
         {/* Spinning gradient ring */}
-        <div className="relative w-20 h-20 rounded-2xl p-[3px] bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 animate-spin shadow-lg shadow-blue-500/10">
-          <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[13px]" />
+        <div className="relative w-28 h-28 rounded-full p-[3px] bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 animate-spin shadow-lg shadow-blue-500/10">
+          <div className="w-full h-full bg-white dark:bg-slate-900 rounded-full" />
         </div>
 
         {/* Nolan Printing Logo */}
-        <div className="absolute w-14 h-14 rounded-xl overflow-hidden shadow-inner bg-white">
+        <div className="absolute w-20 h-10 rounded-xl overflow-hidden shadow-inner bg-white p-1 flex items-center justify-center border border-slate-100 dark:border-slate-800">
           <Image
             src="/images/logo.jpeg"
             alt="Nolan Printing"
             fill
-            className="object-cover"
+            className="object-contain"
             priority
           />
         </div>

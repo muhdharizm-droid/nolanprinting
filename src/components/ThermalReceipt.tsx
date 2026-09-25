@@ -57,8 +57,8 @@ export default function ThermalReceipt({
             <Image
               src="/images/logo.jpeg"
               alt="Nolan Printing Services"
-              width={72}
-              height={72}
+              width={140}
+              height={58}
               className="rounded-xl object-contain filter contrast-125"
               priority
             />
@@ -196,7 +196,7 @@ export default function ThermalReceipt({
       >
         <div className="flex justify-between items-center pb-3 border-b-2 border-slate-800">
           <div className="flex items-center gap-3">
-            <Image src="/images/logo.jpeg" alt="Logo" width={48} height={48} className="rounded-lg object-contain" />
+            <Image src="/images/logo.jpeg" alt="Logo" width={110} height={46} className="rounded-lg object-contain" />
             <div>
               <h2 className="font-black text-sm uppercase">NOLAN PRINTING SERVICES</h2>
               <p className="text-[10px] text-slate-500">Ampang, Selangor | Tel: 013-2707949</p>
@@ -327,9 +327,9 @@ export default function ThermalReceipt({
           <Image
             src="/images/logo.jpeg"
             alt="Nolan Printing Services"
-            width={60}
-            height={60}
-            className="rounded-full object-cover filter contrast-125 brightness-95"
+            width={130}
+            height={54}
+            className="rounded-lg object-contain filter contrast-125 brightness-95"
             priority
           />
         </div>

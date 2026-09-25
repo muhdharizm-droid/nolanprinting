@@ -261,8 +261,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile Top Header */}
       <div className="md:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white shrink-0 border border-white/20 shadow">
-            <Image src="/images/logo.jpeg" alt="Logo" fill className="object-cover" />
+          <div className="relative w-16 h-8 rounded-lg overflow-hidden bg-white shrink-0 border border-white/20 shadow p-0.5 flex items-center justify-center">
+            <Image src="/images/logo.jpeg" alt="Logo" fill className="object-contain" />
           </div>
           <span className="font-bold text-sm tracking-tight">Nolan Printing</span>
         </div>
@@ -300,12 +300,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onClick={() => setSidebarOpen(false)}
           className="p-4 border-b border-slate-800/80 flex items-center gap-3 hover:bg-slate-800/40 transition group"
         >
-          <div className="relative w-10 h-10 rounded-xl overflow-hidden border-2 border-white/20 shadow-md bg-white shrink-0 group-hover:scale-105 transition-transform">
+          <div className="relative w-16 h-9 rounded-xl overflow-hidden border-2 border-white/20 shadow-md bg-white shrink-0 group-hover:scale-105 transition-transform p-0.5 flex items-center justify-center">
             <Image
               src="/images/logo.jpeg"
               alt="Nolan Printing Logo"
               fill
-              className="object-cover"
+              className="object-contain"
               priority
             />
           </div>

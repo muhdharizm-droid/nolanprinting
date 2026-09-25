@@ -120,8 +120,8 @@ export default function PurchaseOrderModal({
           {/* Document Header */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pb-6 border-b border-slate-200">
             <div className="flex items-start gap-4">
-              <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-white shrink-0">
-                <Image src="/images/logo.jpeg" alt="Logo" fill className="object-cover" />
+              <div className="relative w-36 h-16 rounded-xl overflow-hidden border border-slate-200 bg-white shrink-0 p-1 flex items-center justify-center">
+                <Image src="/images/logo.jpeg" alt="Logo" fill className="object-contain" priority />
               </div>
               <div>
                 <h2 className="text-xl font-black text-slate-900 tracking-tight">NOLAN PRINTING SERVICES</h2>

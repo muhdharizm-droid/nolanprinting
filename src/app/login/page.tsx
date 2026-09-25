@@ -66,12 +66,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
         {/* Header Header Banner */}
         <div className="bg-gradient-to-r from-blue-700 to-indigo-700 p-8 text-white text-center relative">
-          <div className="relative w-20 h-20 rounded-2xl overflow-hidden mx-auto mb-3 border-2 border-white/40 shadow-xl bg-white">
+          <div className="relative w-48 h-20 rounded-2xl overflow-hidden mx-auto mb-3 border-2 border-white/40 shadow-xl bg-white p-2 flex items-center justify-center">
             <Image
               src="/images/logo.jpeg"
               alt="Nolan Printing Services"
               fill
-              className="object-cover"
+              className="object-contain p-1"
               priority
             />
           </div>
