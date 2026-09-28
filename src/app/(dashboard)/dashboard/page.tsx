@@ -55,10 +55,10 @@ export default function DashboardPage() {
       const res = await fetch(`/api/reports?range=${range}`);
       const data = await res.json();
       if (data.success) {
-        setSummary(data.summary);
-        setCategoryData(data.categoryChartData);
-        setStaffData(data.staffChartData);
-        setTrendData(data.dailyTrendData);
+        setSummary(data.summary || {});
+        setCategoryData(data.categoryChartData || []);
+        setStaffData(data.staffChartData || []);
+        setTrendData(data.dailyTrendData || []);
       }
     } catch (e) {
       console.error(e);
@@ -78,8 +78,8 @@ export default function DashboardPage() {
   };
 
   // Calculate timeframe totals for graph header
-  const rangeTotalRevenue = trendData.reduce((sum, item) => sum + (Number(item.revenue) || 0), 0);
-  const rangeTotalProfit = trendData.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
+  const rangeTotalRevenue = (trendData || []).reduce((sum, item) => sum + (Number(item?.revenue) || 0), 0);
+  const rangeTotalProfit = (trendData || []).reduce((sum, item) => sum + (Number(item?.profit) || 0), 0);
 
   if (loading) {
     return (

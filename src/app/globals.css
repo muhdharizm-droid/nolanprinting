@@ -29,29 +29,34 @@
 }
 
 /* Thermal Receipt Standard 80mm Print Media Query */
-/* Multi-Standard Print Media Query */
+/* Print Media Queries: Thermal Receipt vs Executive Sales Report */
 @media print {
-  @page {
-    size: 80mm auto;
-    margin: 0;
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
   }
-  html, body {
+
+  /* Thermal Receipt Printing */
+  body:has(#printable-receipt),
+  body.printing-receipt {
     width: 80mm !important;
     max-width: 80mm !important;
     margin: 0 auto !important;
     padding: 0 !important;
-    background: #ffffff !important;
-    color: #000000 !important;
   }
-  body * {
+
+  body:has(#printable-receipt) *,
+  body.printing-receipt * {
     visibility: hidden !important;
   }
-  #printable-receipt,
-  #printable-receipt * {
+
+  body:has(#printable-receipt) #printable-receipt,
+  body:has(#printable-receipt) #printable-receipt *,
+  body.printing-receipt #printable-receipt,
+  body.printing-receipt #printable-receipt * {
     visibility: visible !important;
   }
 
-  /* Universal reset for print container */
   #printable-receipt {
     position: absolute !important;
     left: 0 !important;
@@ -66,36 +71,89 @@
     border: none !important;
   }
 
-  /* 80mm Retail POS Thermal Roll */
   #printable-receipt.receipt-format-80mm {
     width: 80mm !important;
     max-width: 80mm !important;
     padding: 3mm 2mm !important;
   }
 
-  /* 58mm Mini Mobile POS Roll */
   #printable-receipt.receipt-format-58mm {
     width: 58mm !important;
     max-width: 58mm !important;
     padding: 2mm 1mm !important;
   }
 
-  /* A4 Standard Corporate Invoice */
   #printable-receipt.receipt-format-a4 {
     width: 100% !important;
     max-width: 100% !important;
     padding: 10mm 8mm !important;
   }
 
-  /* A5 Half-Page Voucher */
   #printable-receipt.receipt-format-a5 {
     width: 100% !important;
     max-width: 100% !important;
     padding: 6mm 5mm !important;
   }
 
+  /* Executive Sales Report Printing */
   @page {
-    margin: 0mm;
+    size: auto;
+    margin: 10mm;
+  }
+
+  body:has(#printable-sales-report),
+  body.printing-sales-report {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body:has(#printable-sales-report) aside,
+  body:has(#printable-sales-report) header,
+  body.printing-sales-report aside,
+  body.printing-sales-report header {
+    display: none !important;
+  }
+
+  body:has(#printable-sales-report) *,
+  body.printing-sales-report * {
+    visibility: hidden;
+  }
+
+  body:has(#printable-sales-report) #printable-sales-report,
+  body:has(#printable-sales-report) #printable-sales-report *,
+  body.printing-sales-report #printable-sales-report,
+  body.printing-sales-report #printable-sales-report * {
+    visibility: visible !important;
+  }
+
+  #printable-sales-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  #printable-sales-report table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  #printable-sales-report th,
+  #printable-sales-report td {
+    color: #000000 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
   }
 }
 

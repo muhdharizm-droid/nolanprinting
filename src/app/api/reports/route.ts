@@ -311,6 +311,41 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
+    const grossProfit = totalRevenue - totalCogs;
+    const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const netProfit = grossProfit - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+    // Active non-service products for low stock count
+    const products = await db.product.findMany({
+      where: { status: "active", isService: false },
+    });
+    const lowStockCount = products.filter((p: any) => p.stock <= p.threshold).length;
+
+    // Staff sales performance
+    const staffSalesMap: Record<string, { name: string; revenue: number; count: number }> = {};
+    for (const sale of completedSales) {
+      const staffName = sale.user?.fullName || sale.user?.username || "Staff";
+      if (!staffSalesMap[staffName]) {
+        staffSalesMap[staffName] = { name: staffName, revenue: 0, count: 0 };
+      }
+      staffSalesMap[staffName].revenue += Number(sale.total);
+      staffSalesMap[staffName].count += 1;
+    }
+    const staffChartData = Object.values(staffSalesMap).map((s) => ({
+      name: s.name,
+      revenue: Math.round(s.revenue * 100) / 100,
+      count: s.count,
+    }));
+
+    // Daily trend data for Dashboard charts
+    const dailyTrendData = dailyBreakdown.map((d: any) => ({
+      date: d.dayName || d.date,
+      revenue: d.total,
+      profit: Math.round(d.total * 0.45 * 100) / 100,
+      transactions: d.count,
+    }));
+
     // Available years for filter dropdown
     const availableYears = [currentYear, currentYear - 1, currentYear - 2];
 
@@ -320,6 +355,9 @@ export async function GET(request: NextRequest) {
       periodLabel: label,
       summary: {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
+        totalCogs: Math.round(totalCogs * 100) / 100,
+        grossProfit: Math.round(grossProfit * 100) / 100,
+        grossMargin: Math.round(grossMargin * 10) / 10,
         totalSubtotal: Math.round(totalSubtotal * 100) / 100,
         totalDiscounts: Math.round(totalDiscounts * 100) / 100,
         totalTax: Math.round(totalTax * 100) / 100,
@@ -327,9 +365,14 @@ export async function GET(request: NextRequest) {
         totalItemsSold,
         averageOrderValue,
         totalExpenses: Math.round(totalExpenses * 100) / 100,
+        netProfit: Math.round(netProfit * 100) / 100,
+        profitMargin: Math.round(profitMargin * 10) / 10,
+        lowStockCount,
       },
       paymentReconciliation,
       dailyBreakdown,
+      dailyTrendData,
+      staffChartData,
       topProducts,
       categoryChartData,
       detailedTransactions,

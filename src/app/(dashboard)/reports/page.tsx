@@ -280,7 +280,11 @@ export default function ReportsPage() {
   };
 
   const handlePrint = () => {
+    document.body.classList.add("printing-sales-report");
     window.print();
+    setTimeout(() => {
+      document.body.classList.remove("printing-sales-report");
+    }, 1500);
   };
 
   return (
@@ -545,7 +549,27 @@ export default function ReportsPage() {
               <div className="h-64 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5" />
             </div>
           ) : (
-            <>
+            <div id="printable-sales-report" className="space-y-6">
+              {/* Official Print Header (Visible ONLY on print) */}
+              <div className="hidden print:block pb-4 mb-4 border-b-2 border-slate-900">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-xl font-black text-black tracking-tight">
+                      NOLAN PRINTING SERVICES
+                    </h1>
+                    <p className="text-xs text-slate-700 font-semibold mt-0.5">
+                      {t("sales_report_title")}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs">
+                    <div className="font-bold text-black">{periodLabel}</div>
+                    <div className="text-[10px] text-slate-600 mt-0.5">
+                      {t("timestamp")}: {formatDate(new Date().toISOString())}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Section 1: 4 Key Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Total Sales Revenue */}
@@ -987,7 +1011,7 @@ export default function ReportsPage() {
                   </table>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Modal: Itemized Transaction Details */}
