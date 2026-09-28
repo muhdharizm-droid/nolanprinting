@@ -1,115 +1,188 @@
-# Nolan Printing Services - Next.js (React)
+# 🖨️ Nolan Printing Services Management System
 
-A modern, full-stack Point of Sale (POS), Inventory, and Business Management system built with **Next.js 14**, **React**, **TypeScript**, **Tailwind CSS**, and **Prisma ORM**.
+A production-ready, full-stack **Point of Sale (POS)**, **Inventory & Raw Material Tracking (BOM)**, **Automated Low-Stock Reordering & PO Pipeline**, and **Business Analytics** platform custom-built for digital printing, photocopy, and stationery retail hubs.
 
-Designed for zero-config deployment on **Vercel** with a free cloud PostgreSQL database (via **Neon** or **Supabase**).
-
----
-
-## 🚀 Key Features
-
-* **Point of Sale (POS):**
-  * Instant product search & barcode / SKU scanning.
-  * **Custom Print & Photocopy Calculator:** Dynamic calculation of B&W, Full Color, Paper types (A4, A3, Art Card, Sticker), Copies, and Finishing (Staple, Binding, Laminate).
-  * Hold Bill / Retrieve Held Bill.
-  * Cash Tendered calculation with change calculator & quick-tender buttons.
-  * **Thermal Receipt Printing (80mm)** formatted for receipt printers & direct **WhatsApp Receipt sharing**.
-* **Inventory Management:**
-  * Active products, low-stock threshold alerts, and archive/restore tabs.
-  * Quick stock intake batches.
-  * Printable Code128 barcode labels.
-  * 1-Click Excel / CSV inventory export.
-* **Transactions & Voiding:**
-  * Sales history with customer receipts.
-  * **Void Transaction:** Cancels sale and automatically restores inventory stock.
-* **Expenses & Suppliers:**
-  * Categorized expense tracking and supplier directory.
-* **Role-Based Access Control (RBAC):**
-  * `👑 Owner`: Full system access, staff creation, financial statements, and store settings.
-  * `💳 Cashier`: Point of Sale, receipts, and inventory lookup.
-  * `📦 Stock Handler`: Inventory adjustments, categories, barcodes, and suppliers.
-* **Bilingual Support (English & Bahasa Melayu):**
-  * Seamless client-side switching between English and Malay without page reloads.
+Built with **Next.js 14 (App Router)**, **React 18**, **TypeScript**, **Tailwind CSS**, and **Prisma ORM**, powered by a cloud **PostgreSQL** database on **Neon**.
 
 ---
 
-## 🛠️ Tech Stack
+## 🌟 Key Features & Core Modules
 
-* **Frontend:** Next.js 14 App Router, React 18, Tailwind CSS, Lucide Icons, Recharts
-* **Backend:** Next.js Serverless API Routes, Edge Middleware
-* **Database & ORM:** Prisma ORM (PostgreSQL)
-* **Auth & Security:** JWT session cookies (via `jose`), `bcryptjs` password hashing
+### 1. Point of Sale (POS) Register
+* **Fast Barcode & SKU Scanning**: Instant lookup with live stock validation.
+* **Custom Print & Photocopy Calculator**:
+  * Calculates print jobs dynamically: Paper Sizes (`A4`, `A3`, `A5`, `B5`), Sides (`1-Sided` vs `2-Sided Duplex`), Color Modes (`B&W Grayscale` vs `Full Color`), Pages, Copies, and Material types (Simili 70gsm, Double A 80gsm, Inkjet 100gsm, Art Card 260gsm, Sticker, Transparency).
+  * Finishing & Binding options: Plastic Comb Binding, Wire-O Metal Binding, Heat Laminating, Stapling, and Punching.
+  * Required custom price rate input per page and finishing fees.
+* **Cart & Billing Tools**:
+  * Hold Bill / Resume Held Bill (persisted via localStorage).
+  * Multiple Payment Methods: Cash (with auto-change calculator & quick-tender buttons), Credit/Debit Card, and DuitNow QR.
+  * Direct thermal receipt printing & WhatsApp receipt sharing.
+
+### 2. Bill of Materials (BOM) & Raw Material Auto-Deduction 📦
+* **Dual-Unit Inventory Tracking**: Tracks paper in full packs/reams (`stock`) and loose sheets in the printer feed trays (`looseStock`).
+* **Automated Tray Depletion & Pack Unpacking**: Deducts consumed sheets from tray loose stock. When the tray is empty, the system automatically unpacks reams and transfers the remainder to loose stock.
+* **Real-Time Stock Availability in POS**:
+  * Calculator displays live material stock status before adding to the bill (e.g., `A4 70gsm Simili: 64 reams + 499 sheets in tray`).
+  * Instant warning badge if requested print volume exceeds available shop paper or binding supplies.
+* **Transparent Cart & Recipe Badging**: Shows allocated materials on custom print items (`[📦 BOM: 150x A4 Simili 70g • 1x Comb Spine • 2x PVC Cover]`).
+* **Accurate Cost of Goods Sold (COGS)**: Automatically factors raw paper and consumable costs into sales for genuine gross profit margin reporting.
+
+### 3. Automated Low-Stock & Purchase Order (PO) Pipeline 🚨
+* **Low-Stock Notification Bell**: Real-time counter badge in the top navigation bar alerting staff when any product or paper supply breaches minimum threshold.
+* **4-Stage Automated Workflow Pipeline** (`/workflows/low-stock`):
+  1. **Alerts Triggered**: Automatic detection of breached thresholds with suggested reorder quantities.
+  2. **PO Issued**: Generates formal Purchase Orders with official PO numbers.
+     * **Official Purchase Order Document**: Printable/PDF-ready document with supplier details, receiving hub info, item specifications, and signature blocks.
+     * **1-Click WhatsApp Order**: Formats and copies a professional WhatsApp order message ready to send to suppliers.
+  3. **In-Transit Tracking**: Monitors expected delivery dates, courier tracking numbers, and logistics notes.
+  4. **One-Click Intake Restock**: Receiving department verifies units inspected; automatically increments inventory stock and records an audit log.
+
+### 4. Transactions & Secure Voiding with Reason Form 🔄
+* **Transaction History**: Filter by status (`Completed` / `Voided`), date, or search by Sale ID.
+* **Dedicated Void Form Modal**:
+  * Prevents accidental clicks with a structured modal dialog and stock restoration warnings.
+  * Quick-select reason presets (*Cashier error*, *Customer requested refund*, *Defective print / misprint*, *Duplicate transaction*, *Payment method issue*, *Other*).
+  * Required custom explanation textarea.
+* **Automatic Stock Restoration**: Restores both retail merchandise and raw paper/supplies (via linked BOM `StockUsage`) back into inventory.
+* **Receipt & Table Display**: Highlights recorded void reasons on receipts and transaction tables with hover tooltips.
+
+### 5. Multi-Format Thermal Receipts & Tax Invoices 🧾
+* **Flexible Paper Sizing Switcher**:
+  * `80mm Roll` (Standard POS thermal printers)
+  * `58mm Mini` (Compact mobile bluetooth printers)
+  * `A4 Invoice` (Official corporate tax invoice with table breakdown and signature stamp)
+  * `A5 Slip` (Compact half-page receipt slip)
+* **Official Branding**: Features the official logo, company contact info, SST tax breakdown, and customizable receipt footer note.
+
+### 6. Inventory & Stockroom Operations
+* **Product Categorization**: Filter by Retail Merchandise, Paper & Supplies (raw materials), and Custom Print Services.
+* **Barcode Generation**: Generates and prints Code128 barcodes and product shelf labels.
+* **Manual Stock Usage / Floor Issue**: Log paper reams loaded into machine trays or shop consumption.
+* **Stock Intake History & Analytics**: Visual trend charts tracking replenishment volume over time.
+* **Excel / CSV Export**: Instant export of inventory valuation and stock levels.
+
+### 7. Financial Reports & Analytics 📊
+* **P&L Financial Statements**: Real-time revenue, cost of goods (COGS), operating expenses, gross profit, and net profit.
+* **Product Sales Drilldown**: Revenue contribution, units sold, and margins categorized by department.
+* **Expense Management**: Categorized tracking of rent, utilities, ink cartridges, wages, and store expenses.
+
+### 8. Role-Based Access Control (RBAC) & Security 👥
+* **Three Defined Roles**:
+  * `👑 Store Owner`: Full access to all financial statements, staff management, settings, voids, and audit logs.
+  * `💳 Cashier`: Point of Sale, custom print calculator, receipts, and basic transaction lookup.
+  * `📦 Stock Manager`: Inventory management, stock intake, usage logs, barcodes, and low-stock reorder workflows.
+* **Security**: Tamper-evident `ActivityLog` recording all user logins, price adjustments, voids, and stock movements.
+
+### 9. Fully Bilingual (English & Bahasa Melayu) 🌐
+* Complete client-side language switching between English (`en`) and Bahasa Melayu (`ms`) across all pages, modals, thermal receipts, and alert dialogues without page reloads.
 
 ---
 
-## 🌐 Deploying to Vercel in 3 Steps (100% Free)
+## 🛠️ Technology Stack
 
-### Step 1: Create a Free Database (60 Seconds)
-1. Go to [Neon.tech](https://neon.tech) or [Supabase.com](https://supabase.com).
-2. Click **"Continue with GitHub"** to sign in.
-3. Create a project named `nolanprinting`.
-4. Copy the connection string (`DATABASE_URL`). It looks like:
-   ```
-   postgresql://username:password@ep-xyz.neon.tech/neondb?sslmode=require
-   ```
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | [Next.js 14](https://nextjs.org/) (App Router), [React 18](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/) |
+| **Icons & UI** | [Lucide React](https://lucide.dev/), [JsBarcode](https://lindell.me/JsBarcode/), [XLSX](https://sheetjs.com/) |
+| **Charts** | [Recharts](https://recharts.org/) |
+| **Backend** | Next.js Serverless API Routes, Edge Middleware |
+| **Database** | [PostgreSQL](https://www.postgresql.org/) on [Neon](https://neon.tech/) Serverless |
+| **ORM** | [Prisma ORM v5](https://www.prisma.io/) |
+| **Auth** | JWT Session Cookies via [jose](https://github.com/panva/jose), [bcryptjs](https://github.com/dcodeIO/bcrypt.js) |
 
-### Step 2: Initialize Database Tables & Default Users
-In your terminal, run:
+---
+
+## 🚀 Getting Started (Local Development)
+
+### Prerequisites
+* **Node.js** (v18.17.0 or later)
+* **npm** or **yarn**
+* PostgreSQL database instance (Neon recommended)
+
+### 1. Clone & Install
 ```bash
-# Push tables to the cloud database
+git clone https://github.com/muhdharizm-droid/nolanprinting.git
+cd nolanprinting
+npm install
+```
+
+### 2. Environment Configuration
+Create a `.env` file in the root directory (refer to `.env.example`):
+```env
+DATABASE_URL="postgresql://username:password@ep-xyz.neon.tech/neondb?sslmode=require"
+DATABASE_URL_UNPOOLED="postgresql://username:password@ep-xyz.neon.tech/neondb?sslmode=require"
+JWT_SECRET="your-32-character-secret-key"
+```
+
+### 3. Database Synchronization
+```bash
+# Push schema to PostgreSQL database
 npx prisma db push
 
-# Seed initial admin user and categories
+# (Optional) Seed initial categories, demo products & users
 npm run db:seed
 ```
 
-### Step 3: Deploy on Vercel
-1. Push this repository to **GitHub**.
-2. Go to [Vercel](https://vercel.com) and click **"Add New Project"** -> Import this repository.
-3. Under **Environment Variables**, add:
-   * `DATABASE_URL`: *(Your Neon/Supabase PostgreSQL connection string)*
-   * `JWT_SECRET`: *(Any random 32-character string)*
-4. Click **Deploy**! Vercel will build and launch your live URL automatically.
+### 4. Start Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔑 Default Credentials (After Seeding)
+## 🔑 Default Credentials
 
-| Account | Username | Password | Role |
-| :--- | :--- | :--- | :--- |
-| **Owner** | `Hariz` | `admin123` | Full Administrator Access |
-| **Cashier** | `cashier` | `cashier123` | POS Register & Transactions |
-| **Stock Handler** | `stock` | `stock123` | Inventory, Intake & Suppliers |
+| Account | Username | Password | Role | Access Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **Store Owner** | `Hariz` | `admin123` | `owner` | Full Administrator (All Pages & Financials) |
+| **Cashier** | `cashier` | `cashier123` | `cashier` | POS Register, Receipts & Lookup |
+| **Stock Manager** | `stock` | `stock123` | `stock_handler` | Inventory, POs, Barcodes & Suppliers |
 
 ---
 
-## 📁 Project Structure
+## 📁 Directory Architecture
 
 ```
+nolanprinting/
 ├── prisma/
-│   ├── schema.prisma       # Database models & relations
-│   └── seed.ts             # Initial database seed script
-├── public/                 # Logos, background images
+│   ├── schema.prisma       # Prisma schema (Sales, Products, Workflows, BOM Usages)
+│   └── seed.ts             # Initial seed script
+├── public/                 # Static assets (Logos, backgrounds)
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/login/   # Login page
-│   │   ├── (dashboard)/    # Dashboard layout & protected routes
-│   │   │   ├── pos/        # POS register & custom print calculator
-│   │   │   ├── inventory/  # Stock management & barcodes
-│   │   │   ├── transactions/ # Sales history & voiding
-│   │   │   ├── expenses/   # Expense tracker
-│   │   │   ├── suppliers/  # Suppliers directory
-│   │   │   ├── staff/      # Staff accounts (Owner only)
-│   │   │   ├── reports/    # P&L financial reports
-│   │   │   ├── logs/       # System audit logs
-│   │   │   └── settings/   # Store settings & tax rates
-│   │   └── api/            # 14 Serverless REST API endpoints
+│   │   ├── (auth)/login/   # Login authentication page
+│   │   ├── (dashboard)/    # Authenticated dashboard views
+│   │   │   ├── categories/ # Department / Category catalog
+│   │   │   ├── dashboard/  # Executive metrics overview
+│   │   │   ├── expenses/   # Operating expenses tracker
+│   │   │   ├── home/       # Quick access portal
+│   │   │   ├── inventory/  # Stock levels, barcodes, usage logs & intake charts
+│   │   │   ├── logs/       # Tamper-evident system activity audit logs
+│   │   │   ├── pos/        # POS register & custom print calculator with BOM preview
+│   │   │   ├── profile/    # Personal user profile & credentials
+│   │   │   ├── reports/    # P&L statements & category breakdown
+│   │   │   ├── settings/   # Business profile, SST tax rates & receipt defaults
+│   │   │   ├── staff/      # Staff roster & account administration
+│   │   │   ├── suppliers/  # Supplier directory & product links
+│   │   │   ├── transactions/# Transaction receipts & voiding workflow
+│   │   │   └── workflows/
+│   │   │       └── low-stock/ # Low-stock reordering & PO pipeline
+│   │   └── api/            # Serverless REST endpoints
+│   ├── components/         # Reusable UI widgets, ThermalReceipt, PurchaseOrderModal
 │   ├── lib/
-│   │   ├── auth.ts         # JWT session management
-│   │   ├── db.ts           # Prisma client instance
-│   │   ├── utils.ts        # Currency (MYR) and date formatting
-│   │   └── i18n/           # English & Malay translation dictionaries
-│   └── middleware.ts       # Route protection & role guards
-└── legacy_php/             # Safely archived previous PHP codebase
+│   │   ├── auth.ts         # JWT token signing & verification
+│   │   ├── db.ts           # Prisma database client singleton
+│   │   ├── utils.ts        # Currency (MYR), date formatters & helpers
+│   │   └── i18n/           # English & Bahasa Melayu dictionaries
+│   └── middleware.ts       # Edge route protection & RBAC authorization
+└── README.md
 ```
 
+---
+
+## 📄 License & Attribution
+
+Developed for **Nolan Printing Services Hub** © 2026. All rights reserved.
+Built for high-efficiency digital print operations in Malaysia.
