@@ -111,8 +111,9 @@ model Sale {
   voidReason     String?    @map("void_reason") @db.Text
   createdAt      DateTime   @default(now()) @map("created_at")
 
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   items          SaleItem[]
+  stockUsages    StockUsage[]
 
   @@map("sales")
 }
@@ -153,10 +154,12 @@ model StockUsage {
   reason    String
   notes     String?  @db.Text
   userId    Int      @map("user_id")
+  saleId    Int?     @map("sale_id")
   createdAt DateTime @default(now()) @map("created_at")
 
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sale      Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
 
   @@map("stock_usages")
 }

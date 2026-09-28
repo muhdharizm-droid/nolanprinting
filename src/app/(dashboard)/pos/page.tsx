@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search,
   Barcode,
@@ -16,6 +16,8 @@ import {
   Banknote,
   QrCode,
   Layers,
+  Package,
+  AlertTriangle,
   X,
   Clock,
   ShoppingCart,
@@ -41,6 +43,8 @@ interface Product {
   category?: { id: number; name: string } | null;
   isService: boolean;
   isRawMaterial?: boolean;
+  packSize?: number;
+  looseStock?: number;
 }
 
 interface CartItem {
@@ -52,7 +56,13 @@ interface CartItem {
   isService: boolean;
   details?: string | null;
   stock?: number;
-  consumables?: Array<{ barcode: string; quantity: number; name?: string }>;
+  consumables?: Array<{
+    productId?: number;
+    barcode: string;
+    quantity: number;
+    name?: string;
+    unitLabel?: string;
+  }>;
 }
 
 type PaperSize = "A4" | "A3" | "A5" | "B5";
@@ -80,10 +90,125 @@ const FINISHING_OPTIONS = [
   { id: "laminate", name: "Heat Laminate per Sheet" },
 ];
 
+export interface ResolvedConsumable {
+  productId: number;
+  barcode: string;
+  name: string;
+  quantity: number;
+  unitLabel: string;
+  availableTotal: number;
+  stockPacks: number;
+  looseStock: number;
+  packSize: number;
+  isSufficient: boolean;
+  unitCost: number;
+  totalCost: number;
+}
+
+export const resolveBOMConsumables = (
+  paperSize: PaperSize,
+  materialId: string,
+  sides: PrintSides,
+  pagesStr: string,
+  copiesStr: string,
+  finishingId: string,
+  rawMaterialsList: Product[]
+): {
+  consumables: ResolvedConsumable[];
+  hasInsufficientStock: boolean;
+  totalMaterialCost: number;
+} => {
+  const pages = Math.max(1, parseInt(pagesStr) || 1);
+  const copies = Math.max(1, parseInt(copiesStr) || 1);
+  const sheetsPerCopy = sides === "double" ? Math.ceil(pages / 2) : pages;
+  const totalPrintedSheets = sheetsPerCopy * copies;
+
+  // Determine Paper barcode & sheet requirements
+  let paperBarcode = "RAW-A4-70G";
+  let paperSheetsNeeded = totalPrintedSheets;
+
+  if (paperSize === "A3") {
+    if (materialId === "artcard-260") paperBarcode = "RAW-A3-260G";
+    else if (materialId === "premium-80") paperBarcode = "RAW-A3-80G";
+    else paperBarcode = "RAW-A3-70G";
+  } else if (paperSize === "A5") {
+    // 2 A5 pages fit on 1 A4 sheet
+    paperSheetsNeeded = Math.ceil(totalPrintedSheets / 2);
+    if (materialId === "premium-80") paperBarcode = "RAW-A4-80G";
+    else if (materialId === "inkjet-100") paperBarcode = "RAW-A4-100G";
+    else if (materialId === "artcard-260") paperBarcode = "RAW-A4-260G";
+    else if (materialId === "sticker") paperBarcode = "RAW-STK-A4";
+    else if (materialId === "transparency") paperBarcode = "RAW-TR-A4";
+    else paperBarcode = "RAW-A4-70G";
+  } else {
+    // A4 / B5
+    if (materialId === "premium-80") paperBarcode = "RAW-A4-80G";
+    else if (materialId === "inkjet-100") paperBarcode = "RAW-A4-100G";
+    else if (materialId === "artcard-260") paperBarcode = "RAW-A4-260G";
+    else if (materialId === "sticker") paperBarcode = "RAW-STK-A4";
+    else if (materialId === "transparency") paperBarcode = "RAW-TR-A4";
+    else paperBarcode = "RAW-A4-70G";
+  }
+
+  const itemsToFind: Array<{ barcode: string; quantity: number; unitLabel: string }> = [
+    { barcode: paperBarcode, quantity: paperSheetsNeeded, unitLabel: "sheets" }
+  ];
+
+  // Finishing items
+  if (finishingId === "comb") {
+    itemsToFind.push({ barcode: "RAW-COMB-12", quantity: copies, unitLabel: "spines" });
+    itemsToFind.push({ barcode: "RAW-PVC-A4", quantity: copies * 2, unitLabel: "covers" });
+  } else if (finishingId === "wire") {
+    itemsToFind.push({ barcode: "RAW-WIRE-12", quantity: copies, unitLabel: "spines" });
+    itemsToFind.push({ barcode: "RAW-PVC-A4", quantity: copies * 2, unitLabel: "covers" });
+  } else if (finishingId === "laminate") {
+    const lamBarcode = paperSize === "A3" ? "RAW-LAM-A3" : "RAW-LAM-A4";
+    itemsToFind.push({ barcode: lamBarcode, quantity: totalPrintedSheets, unitLabel: "pouches" });
+  }
+
+  const consumables: ResolvedConsumable[] = [];
+  let hasInsufficientStock = false;
+  let totalMaterialCost = 0;
+
+  for (const target of itemsToFind) {
+    const found = rawMaterialsList.find((r) => r.barcode === target.barcode) ||
+                  rawMaterialsList.find((r) => r.name.toLowerCase().includes(target.barcode.toLowerCase()));
+
+    if (found) {
+      const packSize = found.packSize || 1;
+      const totalAvail = (found.stock * packSize) + (found.looseStock || 0);
+      const isSufficient = totalAvail >= target.quantity;
+      if (!isSufficient) hasInsufficientStock = true;
+
+      const unitCost = Number(found.costPrice) / packSize;
+      const costForThis = unitCost * target.quantity;
+      totalMaterialCost += costForThis;
+
+      consumables.push({
+        productId: found.id,
+        barcode: found.barcode || target.barcode,
+        name: found.name,
+        quantity: target.quantity,
+        unitLabel: target.unitLabel,
+        availableTotal: totalAvail,
+        stockPacks: found.stock,
+        looseStock: found.looseStock || 0,
+        packSize,
+        isSufficient,
+        unitCost,
+        totalCost: costForThis,
+      });
+    }
+  }
+
+  return { consumables, hasInsufficientStock, totalMaterialCost };
+};
+
 export default function PosPage() {
   const { t, language } = useI18n();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,18 +245,21 @@ export default function PosPage() {
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch products & categories on load
+  // Fetch products, categories & raw material inventory on load
   const loadData = async () => {
     setCatalogLoading(true);
     try {
-      const [prodRes, catRes] = await Promise.all([
+      const [prodRes, catRes, rawRes] = await Promise.all([
         fetch("/api/products?status=active&exclude_raw=true"),
         fetch("/api/categories"),
+        fetch("/api/products?type=raw_material&status=active"),
       ]);
       const prodData = await prodRes.json();
       const catData = await catRes.json();
+      const rawData = await rawRes.json();
       if (prodData.success) setProducts(prodData.products);
       if (catData.success) setCategories(catData.categories);
+      if (rawData.success) setRawMaterials(rawData.products);
     } catch (e) {
       console.error("Failed to load POS catalog", e);
     } finally {
@@ -345,7 +473,18 @@ export default function PosPage() {
 
     const breakdown = computeCalcBreakdown();
     const price = breakdown.grandTotal;
-    const serviceProduct = products.find((p) => p.isService) || { id: 1 };
+
+    const isCopy = calcServiceType === "copy";
+    const serviceProduct =
+      products.find(
+        (p) =>
+          p.isService &&
+          (isCopy
+            ? p.name.toLowerCase().includes("copy") || p.name.toLowerCase().includes("fotostat")
+            : !p.name.toLowerCase().includes("copy") && !p.name.toLowerCase().includes("fotostat"))
+      ) ||
+      products.find((p) => p.isService) || { id: 1 };
+
     const material = getSelectedMaterial();
     const finishing = getSelectedFinishing();
 
@@ -355,40 +494,24 @@ export default function PosPage() {
 
     const pages = Math.max(1, parseInt(calcPages) || 1);
     const copies = Math.max(1, parseInt(calcCopies) || 1);
-    const sheetsPerCopy = calcSides === "double" ? Math.ceil(pages / 2) : pages;
-    const totalSheets = sheetsPerCopy * copies;
 
-    let paperBarcode = "RAW-A4-70G";
-    if (calcPaperSize === "A3") {
-      paperBarcode = calcMaterialId === "artcard-260" ? "RAW-A3-260G" : "RAW-A3-70G";
-    } else {
-      if (calcMaterialId === "premium-80") paperBarcode = "RAW-A4-80G";
-      else if (calcMaterialId === "artcard-260") paperBarcode = "RAW-A3-260G";
-      else if (calcMaterialId === "sticker") paperBarcode = "RAW-STK-A4";
-      else paperBarcode = "RAW-A4-70G";
-    }
+    const bomResult = resolveBOMConsumables(
+      calcPaperSize,
+      calcMaterialId,
+      calcSides,
+      calcPages,
+      calcCopies,
+      calcFinishingId,
+      rawMaterials
+    );
 
-    const consumables: Array<{ barcode: string; quantity: number; name: string }> = [
-      {
-        barcode: paperBarcode,
-        quantity: totalSheets,
-        name: material.name,
-      },
-    ];
-
-    if (calcFinishingId === "comb") {
-      consumables.push({
-        barcode: "RAW-COMB-12",
-        quantity: copies,
-        name: "Plastic Comb Spine",
-      });
-    } else if (calcFinishingId === "laminate") {
-      consumables.push({
-        barcode: "RAW-LAM-A4",
-        quantity: totalSheets,
-        name: "Laminating Film Pouch",
-      });
-    }
+    const consumables = bomResult.consumables.map((c) => ({
+      productId: c.productId,
+      barcode: c.barcode,
+      quantity: c.quantity,
+      name: c.name,
+      unitLabel: c.unitLabel,
+    }));
 
     const uRate = parseFloat(calcUnitPrice) || 0;
     const fRate = parseFloat(calcFinishingPrice) || 0;
@@ -742,6 +865,19 @@ export default function PosPage() {
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-mono">
                           {item.details}
                         </p>
+                      )}
+                      {item.consumables && item.consumables.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                            <Package className="w-2.5 h-2.5 text-indigo-500 flex-shrink-0" />
+                            <span>{t("bom_details_pill")}:</span>
+                            <span className="font-mono">
+                              {item.consumables
+                                .map((c) => `${c.quantity * item.quantity}x ${c.name || c.barcode}`)
+                                .join(" • ")}
+                            </span>
+                          </span>
+                        </div>
                       )}
                     </div>
                     <span className="text-xs font-black text-slate-900 dark:text-white">
@@ -1141,6 +1277,126 @@ export default function PosPage() {
                   )}
                 </div>
 
+                {/* BILL OF MATERIALS (BOM) & REAL-TIME STOCK STATUS */}
+                {(() => {
+                  const bom = resolveBOMConsumables(
+                    calcPaperSize,
+                    calcMaterialId,
+                    calcSides,
+                    calcPages,
+                    calcCopies,
+                    calcFinishingId,
+                    rawMaterials
+                  );
+
+                  return (
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-100">
+                          <Package className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          <span>{t("bom_preview_title")}</span>
+                        </div>
+                        {bom.consumables.length > 0 && (
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                              bom.hasInsufficientStock
+                                ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                            }`}
+                          >
+                            {bom.hasInsufficientStock ? (
+                              <>
+                                <AlertTriangle className="w-3 h-3 text-rose-500" />
+                                <span>{language === "ms" ? "Stok Kurang!" : "Low Stock Alert!"}</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                <span>{t("sufficient_stock")}</span>
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {t("bom_recipe_desc")}
+                      </p>
+
+                      <div className="space-y-1.5 pt-1">
+                        {bom.consumables.map((item) => (
+                          <div
+                            key={item.barcode}
+                            className={`p-2.5 rounded-xl border text-xs flex flex-wrap items-center justify-between gap-2 transition ${
+                              item.isSufficient
+                                ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700/80"
+                                : "bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                              <div>
+                                <span className="font-bold text-slate-800 dark:text-slate-200">
+                                  {item.name}
+                                </span>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                                  <span>
+                                    {language === "ms" ? "Stok Semasa" : "Available"}:{" "}
+                                    <strong className="text-slate-700 dark:text-slate-300 font-mono">
+                                      {item.stockPacks} {t("reams_packs_units")}
+                                      {item.looseStock > 0 ? ` + ${item.looseStock} ${t("tray_loose_units")}` : ""} ({item.availableTotal.toLocaleString()} {item.unitLabel})
+                                    </strong>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 block font-semibold">
+                                  {language === "ms" ? "Ditolak" : "Deduction"}
+                                </span>
+                                <span className={`font-mono font-black text-xs ${item.isSufficient ? "text-indigo-600 dark:text-indigo-400" : "text-rose-600 dark:text-rose-400"}`}>
+                                  -{item.quantity} {item.unitLabel}
+                                </span>
+                              </div>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                                  item.isSufficient
+                                    ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                    : "bg-rose-600 text-white font-black"
+                                }`}
+                              >
+                                {item.isSufficient
+                                  ? `${item.availableTotal - item.quantity} ${language === "ms" ? "baki" : "left"}`
+                                  : `${language === "ms" ? "Kurang" : "Short"} ${item.quantity - item.availableTotal}`}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {bom.hasInsufficientStock && (
+                        <div className="p-2.5 bg-rose-100/70 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 rounded-xl text-xs text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                          <p className="text-[11px] leading-tight">
+                            {t("insufficient_raw_stock_warning")}
+                          </p>
+                        </div>
+                      )}
+
+                      {bom.totalMaterialCost > 0 && (
+                        <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80 text-slate-500 dark:text-slate-400">
+                          <span>{t("est_material_cost")} (COGS):</span>
+                          <span className="font-bold font-mono text-slate-700 dark:text-slate-300">
+                            {formatMYR(bom.totalMaterialCost)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Price Calculation Summary Breakdown Card */}
                 {(() => {
                   const breakdown = computeCalcBreakdown();
@@ -1159,14 +1415,6 @@ export default function PosPage() {
                         </span>
                         <span>
                           {language === "ms" ? "Jumlah Halaman" : "Total Pages"}: <strong>{totalPages} {language === "ms" ? "halaman" : `page${totalPages > 1 ? "s" : ""}`}</strong>
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>
-                          {t("auto_consumes")}: <strong>{totalSheets} {language === "ms" ? "helaian" : `sheet${totalSheets > 1 ? "s" : ""}`}</strong> {language === "ms" ? "daripada" : "of"} {translatePaperMaterial(material.name, language)}
-                          {finishing.id !== "none" ? ` + ${translateFinishing(finishing.name, language)}` : ""}
                         </span>
                       </div>
 

@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       if (!sale) throw new Error("Sale record not found");
       if (sale.status === "voided") throw new Error("Transaction is already voided.");
 
-      // Restore stock for inventory items
+      // 1. Restore stock for retail inventory items
       for (const item of sale.items) {
         if (!item.product.isService) {
           await tx.product.update({
@@ -94,6 +94,42 @@ export async function POST(req: NextRequest) {
             data: { stock: { increment: item.quantity } },
           });
         }
+      }
+
+      // 2. Restore auto-deducted raw materials (BOM / recipe) from stock_usages
+      const rawUsages = await tx.stockUsage.findMany({
+        where: { saleId: id },
+        include: { product: true },
+      });
+
+      for (const usage of rawUsages) {
+        const prod = usage.product;
+        if (prod) {
+          const packCapacity = prod.packSize || 1;
+          let curStock = prod.stock;
+          let curLoose = prod.looseStock + usage.quantity;
+
+          if (packCapacity > 1 && curLoose >= packCapacity) {
+            const packsToAdd = Math.floor(curLoose / packCapacity);
+            curStock += packsToAdd;
+            curLoose = curLoose % packCapacity;
+          }
+
+          await tx.product.update({
+            where: { id: prod.id },
+            data: {
+              stock: curStock,
+              looseStock: curLoose,
+            },
+          });
+        }
+      }
+
+      // Clean up stockUsages associated with this voided sale
+      if (rawUsages.length > 0) {
+        await tx.stockUsage.deleteMany({
+          where: { saleId: id },
+        });
       }
 
       // Mark sale as voided with reason
@@ -105,12 +141,13 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Log activity with void reason
+      // Log activity with void reason and restoration summary
+      const rawCountMsg = rawUsages.length > 0 ? ` & ${rawUsages.length} raw material BOM items` : "";
       await tx.activityLog.create({
         data: {
           userId: user.id,
           action: "Sale Voided",
-          details: `Voided transaction #${id} (Reason: ${cleanReason}) and restored inventory stock.`,
+          details: `Voided transaction #${id} (Reason: ${cleanReason}) and restored retail stock${rawCountMsg}.`,
         },
       });
 

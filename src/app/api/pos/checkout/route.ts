@@ -32,6 +32,21 @@ export async function POST(req: NextRequest) {
         isService: boolean;
       }> = [];
 
+      const stockUsagesPending: Array<{
+        productId: number;
+        quantity: number;
+        unitType: string;
+        reason: string;
+        notes: string;
+      }> = [];
+
+      const rawStockCheckQueue: Array<{
+        product: any;
+        oldStock: number;
+        newStock: number;
+        newLoose: number;
+      }> = [];
+
       for (const item of items) {
         const qty = Math.max(1, parseInt(item.quantity, 10));
 
@@ -45,7 +60,7 @@ export async function POST(req: NextRequest) {
             for (const cons of item.consumables) {
               const sheetsNeeded = Math.max(1, parseInt(cons.quantity, 10)) * qty;
 
-              // Find raw material product by barcode or id
+              // Find raw material product by id or barcode
               const rawProduct = await tx.product.findFirst({
                 where: cons.productId
                   ? { id: parseInt(cons.productId, 10) }
@@ -54,6 +69,7 @@ export async function POST(req: NextRequest) {
 
               if (rawProduct) {
                 const packCapacity = rawProduct.packSize || 1;
+                const oldStock = rawProduct.stock;
                 let curStock = rawProduct.stock;
                 let curLoose = rawProduct.looseStock;
 
@@ -83,15 +99,19 @@ export async function POST(req: NextRequest) {
                 const unitCost = Number(rawProduct.costPrice) / packCapacity;
                 serviceMaterialCost += unitCost * sheetsNeeded;
 
-                await tx.stockUsage.create({
-                  data: {
-                    productId: rawProduct.id,
-                    quantity: sheetsNeeded,
-                    unitType: "loose",
-                    reason: "POS Customer Printing Order",
-                    notes: `Auto-deducted for ${item.name} (${item.details || ""})`,
-                    userId: user.id,
-                  },
+                stockUsagesPending.push({
+                  productId: rawProduct.id,
+                  quantity: sheetsNeeded,
+                  unitType: "loose",
+                  reason: "POS Customer Printing Order",
+                  notes: `Auto-deducted for ${item.name} (${item.details || ""})`,
+                });
+
+                rawStockCheckQueue.push({
+                  product: rawProduct,
+                  oldStock,
+                  newStock: curStock,
+                  newLoose: curLoose,
                 });
               }
             }
@@ -186,6 +206,42 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+
+      // Persist all auto-deducted raw material usages with relation to this sale
+      for (const usage of stockUsagesPending) {
+        await tx.stockUsage.create({
+          data: {
+            ...usage,
+            userId: user.id,
+            saleId: sale.id,
+          },
+        });
+      }
+
+      // Check if any consumed raw material crossed below threshold
+      for (const check of rawStockCheckQueue) {
+        if (check.newStock <= check.product.threshold && check.oldStock > check.product.threshold) {
+          const existingWf = await tx.restockWorkflow.findFirst({
+            where: {
+              productId: check.product.id,
+              status: { in: ["alert_triggered", "po_issued", "in_transit"] },
+            },
+          });
+          if (!existingWf) {
+            await tx.restockWorkflow.create({
+              data: {
+                productId: check.product.id,
+                supplierId: check.product.supplierId,
+                currentStock: check.newStock,
+                threshold: check.product.threshold,
+                suggestedQty: Math.max(10, check.product.threshold * 2),
+                status: "alert_triggered",
+                notes: `Auto-triggered: Low paper/consumable stock after POS Order #${sale.id}`,
+              },
+            });
+          }
+        }
+      }
 
       // Log sale activity
       await tx.activityLog.create({
