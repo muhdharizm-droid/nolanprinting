@@ -23,7 +23,7 @@ export async function GET() {
       },
     });
 
-    const lowStockProducts = allProducts.filter((p) => p.stock <= p.threshold);
+    const lowStockProducts = allProducts.filter((p: any) => p.stock <= p.threshold);
 
     // 2. Sync with RestockWorkflow table
     for (const prod of lowStockProducts) {
@@ -106,13 +106,13 @@ export async function GET() {
     });
 
     // 5. Summary metrics
-    const triggered = activeWorkflows.filter((w) => w.status === "alert_triggered");
-    const poIssued = activeWorkflows.filter((w) => w.status === "po_issued");
-    const inTransit = activeWorkflows.filter((w) => w.status === "in_transit");
-    const critical = activeWorkflows.filter((w) => w.currentStock <= 0);
+    const triggered = activeWorkflows.filter((w: any) => w.status === "alert_triggered");
+    const poIssued = activeWorkflows.filter((w: any) => w.status === "po_issued");
+    const inTransit = activeWorkflows.filter((w: any) => w.status === "in_transit");
+    const critical = activeWorkflows.filter((w: any) => w.currentStock <= 0);
 
     const supplierIds = new Set(
-      activeWorkflows.map((w) => w.supplierId).filter(Boolean)
+      activeWorkflows.map((w: any) => w.supplierId).filter(Boolean)
     );
 
     return NextResponse.json({
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
       const qty = receivedQty ? parseInt(receivedQty.toString()) : (workflow.orderQty || workflow.suggestedQty);
 
       // Perform atomic database transaction
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: any) => {
         // 1. Record stock intake audit record
         const intake = await tx.stockIntake.create({
           data: {

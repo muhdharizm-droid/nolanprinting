@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         ? voidReason.trim()
         : "No reason specified";
 
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: any) => {
       const sale = await tx.sale.findUnique({
         where: { id },
         include: { items: { include: { product: true } } },

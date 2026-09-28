@@ -105,7 +105,7 @@ export interface ResolvedConsumable {
   totalCost: number;
 }
 
-export const resolveBOMConsumables = (
+const resolveBOMConsumables = (
   paperSize: PaperSize,
   materialId: string,
   sides: PrintSides,

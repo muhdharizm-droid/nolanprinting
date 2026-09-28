@@ -13,7 +13,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalExpense = expenses.reduce((sum: number, e: { amount: any }) => sum + Number(e.amount), 0);
 
     return NextResponse.json({ success: true, expenses, totalExpense });
   } catch (error) {

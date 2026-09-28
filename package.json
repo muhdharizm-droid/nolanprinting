@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
+    "test": "ts-node --transpile-only tests/test-suite.ts",
     "db:push": "prisma db push",
     "db:seed": "node --loader ts-node/esm prisma/seed.ts"
   },

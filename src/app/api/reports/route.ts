@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const expenses = await db.expense.findMany({
       orderBy: { createdAt: "desc" },
     });
-    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalExpenses = expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
     const expensesByCategoryMap: Record<string, number> = {};
     for (const exp of expenses) {
       const cat = exp.category || "General Operating";
@@ -105,9 +105,9 @@ export async function GET(request: NextRequest) {
     const products = await db.product.findMany({
       where: { status: "active", isService: false },
     });
-    const lowStockCount = products.filter((p) => p.stock <= p.threshold && p.stock > 0).length;
-    const outOfStockCount = products.filter((p) => p.stock <= 0).length;
-    const healthyStockCount = products.filter((p) => p.stock > p.threshold).length;
+    const lowStockCount = products.filter((p: any) => p.stock <= p.threshold && p.stock > 0).length;
+    const outOfStockCount = products.filter((p: any) => p.stock <= 0).length;
+    const healthyStockCount = products.filter((p: any) => p.stock > p.threshold).length;
 
     // Format category datasets
     const categoryChartData = Object.entries(categorySalesMap)
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
           const bucketHour = Math.min(22, Math.max(8, Math.floor(saleHour / 2) * 2));
           const label = `${bucketHour.toString().padStart(2, "0")}:00`;
           const saleTotal = Number(sale.total);
-          const saleCogs = sale.items.reduce((s, it) => s + Number(it.costAtSale) * it.quantity, 0);
+          const saleCogs = sale.items.reduce((s: number, it: any) => s + Number(it.costAtSale) * it.quantity, 0);
 
           if (!hoursMap[label]) {
             hoursMap[label] = { revenue: 0, profit: 0, count: 0 };
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
         const key = new Date(sale.createdAt).toISOString().split("T")[0];
         if (daysMap[key]) {
           const saleTotal = Number(sale.total);
-          const saleCogs = sale.items.reduce((s, it) => s + Number(it.costAtSale) * it.quantity, 0);
+          const saleCogs = sale.items.reduce((s: number, it: any) => s + Number(it.costAtSale) * it.quantity, 0);
           daysMap[key].revenue += saleTotal;
           daysMap[key].profit += saleTotal - saleCogs;
           daysMap[key].count += 1;
@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
           daysMap[key] = { date: label, revenue: 0, profit: 0, count: 0 };
         }
         const saleTotal = Number(sale.total);
-        const saleCogs = sale.items.reduce((s, it) => s + Number(it.costAtSale) * it.quantity, 0);
+        const saleCogs = sale.items.reduce((s: number, it: any) => s + Number(it.costAtSale) * it.quantity, 0);
         daysMap[key].revenue += saleTotal;
         daysMap[key].profit += saleTotal - saleCogs;
         daysMap[key].count += 1;
@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
         const key = new Date(sale.createdAt).toISOString().split("T")[0];
         if (daysMap[key]) {
           const saleTotal = Number(sale.total);
-          const saleCogs = sale.items.reduce((s, it) => s + Number(it.costAtSale) * it.quantity, 0);
+          const saleCogs = sale.items.reduce((s: number, it: any) => s + Number(it.costAtSale) * it.quantity, 0);
           daysMap[key].revenue += saleTotal;
           daysMap[key].profit += saleTotal - saleCogs;
           daysMap[key].count += 1;

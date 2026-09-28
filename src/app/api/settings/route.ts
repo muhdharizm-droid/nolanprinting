@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const settings = await db.setting.findMany();
     const map: Record<string, string> = {};
-    settings.forEach((s) => {
+    settings.forEach((s: any) => {
       map[s.key] = s.value;
     });
     return NextResponse.json({ success: true, settings: map });

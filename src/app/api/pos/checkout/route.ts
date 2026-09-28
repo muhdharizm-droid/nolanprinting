@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Execute atomic transaction
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: any) => {
       let subtotalCalc = 0;
       const itemsToProcess: Array<{
         productId: number;

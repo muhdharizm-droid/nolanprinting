@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     });
 
     const filtered = lowStock
-      ? products.filter((p) => !p.isService && p.stock <= p.threshold)
+      ? products.filter((p: any) => !p.isService && p.stock <= p.threshold)
       : products;
 
     return NextResponse.json({ success: true, products: filtered });

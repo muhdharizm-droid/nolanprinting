@@ -173,7 +173,7 @@ export async function GET(req: NextRequest) {
     const recentIntakes = intakes
       .slice(-30)
       .reverse()
-      .map((item) => ({
+      .map((item: any) => ({
         id: item.id,
         createdAt: item.createdAt,
         productName: item.product.name,
