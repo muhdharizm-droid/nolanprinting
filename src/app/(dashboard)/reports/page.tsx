@@ -3,217 +3,300 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   BarChart3,
-  PieChart as PieIcon,
   Download,
   DollarSign,
   TrendingUp,
-  Filter,
   Search,
-  Layers,
   Package,
   Printer,
   Truck,
+  Receipt,
+  CreditCard,
+  QrCode,
+  Calendar,
+  Filter,
+  Eye,
+  X,
+  Building2,
+  Wallet,
+  ArrowUpDown,
+  FileSpreadsheet,
+  CheckCircle2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
+  Tooltip,
 } from "recharts";
 import * as XLSX from "xlsx";
 import { useI18n } from "@/lib/i18n/context";
-import { translateCategory, translateExpenseCategory } from "@/lib/i18n/translations";
-import { formatMYR } from "@/lib/utils";
+import {
+  translateCategory,
+  translatePaymentMethod,
+  translateMonth,
+} from "@/lib/i18n/translations";
+import { formatMYR, formatDate } from "@/lib/utils";
 import StockIntakeReportView from "@/components/StockIntakeReportView";
 
-interface CategoryData {
-  name: string;
-  value: number;
+interface PaymentReconciliation {
+  method: string;
+  amount: number;
   count: number;
   percentage: number;
 }
 
-interface ProductSalesData {
+interface DailyBreakdown {
+  date: string;
+  dayName: string;
+  total: number;
+  count: number;
+  cash: number;
+  digital: number;
+}
+
+interface TopProduct {
   productId: number;
   productName: string;
   categoryName: string;
   isService: boolean;
   unitsSold: number;
   totalRevenue: number;
-  totalCogs: number;
-  profit: number;
-  margin: number;
-  unitPrice: number;
+  percentage: number;
 }
 
-interface ExpenseCategory {
-  category: string;
-  amount: number;
+interface DetailedTransactionItem {
+  id: number;
+  productId: number;
+  productName: string;
+  categoryName: string;
+  isService: boolean;
+  quantity: number;
+  priceAtSale: number;
+  details: string | null;
+  lineTotal: number;
+}
+
+interface DetailedTransaction {
+  id: number;
+  receiptNo: string;
+  createdAt: string;
+  cashier: string;
+  paymentMethod: string;
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  total: number;
+  itemCount: number;
+  itemsSummary: string;
+  items: DetailedTransactionItem[];
 }
 
 interface ReportSummary {
   totalRevenue: number;
-  totalCogs: number;
-  grossProfit: number;
-  grossMargin: number;
+  totalSubtotal: number;
   totalDiscounts: number;
   totalTax: number;
-  totalExpenses: number;
-  netProfit: number;
-  profitMargin: number;
   totalTransactions: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-  healthyStockCount: number;
-  totalActiveProducts: number;
+  totalItemsSold: number;
+  averageOrderValue: number;
 }
-
-const PIE_COLORS = [
-  "#2563eb", // Royal Blue
-  "#10b981", // Emerald
-  "#8b5cf6", // Violet
-  "#f59e0b", // Amber
-  "#ec4899", // Pink
-  "#06b6d4", // Cyan
-  "#f97316", // Orange
-  "#64748b", // Slate
-];
 
 export default function ReportsPage() {
   const { t, language } = useI18n();
 
-  const [summary, setSummary] = useState<ReportSummary | null>(null);
-  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
-  const [productData, setProductData] = useState<ProductSalesData[]>([]);
-  const [expensesByCategory, setExpensesByCategory] = useState<ExpenseCategory[]>([]);
+  // Tab: "sales" vs "stock_intake"
+  const [activeTab, setActiveTab] = useState<"sales" | "stock_intake">("sales");
+
+  // Filter Mode: "presets" | "monthly" | "yearly" | "custom"
+  const [filterMode, setFilterMode] = useState<"presets" | "monthly" | "yearly" | "custom">("presets");
+  const [preset, setPreset] = useState<string>("this_month");
+
+  const today = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
+
+  const firstDayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const [startDate, setStartDate] = useState<string>(firstDayStr);
+  const [endDate, setEndDate] = useState<string>(todayStr);
+
+  // Data States
   const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<ReportSummary | null>(null);
+  const [paymentReconciliation, setPaymentReconciliation] = useState<PaymentReconciliation[]>([]);
+  const [dailyBreakdown, setDailyBreakdown] = useState<DailyBreakdown[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [detailedTransactions, setDetailedTransactions] = useState<DetailedTransaction[]>([]);
+  const [availableYears, setAvailableYears] = useState<number[]>([today.getFullYear()]);
+  const [periodLabel, setPeriodLabel] = useState<string>("");
 
-  // Active Report Tab: Financial Statements vs Stock Intake Trends
-  const [activeReportTab, setActiveReportTab] = useState<"financial" | "stock_intake">("financial");
+  // Views & Modals
+  const [dailyViewMode, setDailyViewMode] = useState<"chart" | "table">("chart");
+  const [transactionSearch, setTransactionSearch] = useState<string>("");
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [selectedTransaction, setSelectedTransaction] = useState<DetailedTransaction | null>(null);
 
-  // Category & Product Drilldown Filters
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [productSearch, setProductSearch] = useState<string>("");
+  // Fetch Reports Data
+  const loadReports = async () => {
+    setLoading(true);
+    try {
+      let queryUrl = "/api/reports?";
+      if (filterMode === "presets") {
+        queryUrl += `period=${preset}`;
+      } else if (filterMode === "monthly") {
+        queryUrl += `period=monthly&month=${selectedMonth}&year=${selectedYear}`;
+      } else if (filterMode === "yearly") {
+        queryUrl += `period=yearly&year=${selectedYear}`;
+      } else if (filterMode === "custom") {
+        queryUrl += `period=custom&startDate=${startDate}&endDate=${endDate}`;
+      }
+
+      const res = await fetch(queryUrl);
+      const data = await res.json();
+      if (data.success) {
+        setSummary(data.summary);
+        setPaymentReconciliation(data.paymentReconciliation || []);
+        setDailyBreakdown(data.dailyBreakdown || []);
+        setTopProducts(data.topProducts || []);
+        setDetailedTransactions(data.detailedTransactions || []);
+        setPeriodLabel(data.periodLabel || "");
+        if (data.availableYears && data.availableYears.length > 0) {
+          setAvailableYears(data.availableYears);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load reports", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadReports() {
-      try {
-        const res = await fetch("/api/reports");
-        const data = await res.json();
-        if (data.success) {
-          setSummary(data.summary);
-          setCategoryData(data.categoryChartData || []);
-          setProductData(data.productSalesData || []);
-          setExpensesByCategory(data.expensesByCategory || []);
-        }
-      } catch (e) {
-        console.error("Failed to load reports data", e);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadReports();
-  }, []);
+  }, [filterMode, preset, selectedMonth, selectedYear]);
 
-  // Filtered Products for drilldown table & chart
-  const filteredProducts = useMemo(() => {
-    return productData.filter((p) => {
-      const matchCat =
-        selectedCategory === "all" ||
-        p.categoryName.toLowerCase() === selectedCategory.toLowerCase();
+  const handleApplyCustomDate = () => {
+    loadReports();
+  };
+
+  // Filtered Detailed Transactions
+  const filteredTransactions = useMemo(() => {
+    return detailedTransactions.filter((tx) => {
       const matchSearch =
-        p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
-        p.categoryName.toLowerCase().includes(productSearch.toLowerCase());
-      return matchCat && matchSearch;
+        tx.receiptNo.toLowerCase().includes(transactionSearch.toLowerCase()) ||
+        tx.cashier.toLowerCase().includes(transactionSearch.toLowerCase()) ||
+        tx.itemsSummary.toLowerCase().includes(transactionSearch.toLowerCase());
+
+      const normMethod = (tx.paymentMethod || "cash").toLowerCase();
+      const matchPayment =
+        paymentFilter === "all" ||
+        (paymentFilter === "cash" && normMethod === "cash") ||
+        (paymentFilter === "qr" && (normMethod.includes("qr") || normMethod.includes("duitnow"))) ||
+        (paymentFilter === "transfer" && (normMethod.includes("transfer") || normMethod.includes("online") || normMethod.includes("bank"))) ||
+        (paymentFilter === "card" && (normMethod.includes("card") || normMethod.includes("debit") || normMethod.includes("credit")));
+
+      return matchSearch && matchPayment;
     });
-  }, [productData, selectedCategory, productSearch]);
+  }, [detailedTransactions, transactionSearch, paymentFilter]);
 
-  // Top 6 products in current category view for bar chart
-  const topProductsChart = useMemo(() => {
-    return filteredProducts.slice(0, 6).map((p) => ({
-      name: p.productName.length > 18 ? `${p.productName.slice(0, 18)}...` : p.productName,
-      revenue: p.totalRevenue,
-      units: p.unitsSold,
-    }));
-  }, [filteredProducts]);
-
-  // Multi-Sheet Excel Export
+  // Excel Export Handler
   const handleExportExcel = () => {
     if (!summary) return;
 
     const wb = XLSX.utils.book_new();
 
-    // 1. Sheet: Executive Financial Statement
-    const financialRows = [
-      { Section: "1. SALES REVENUE", Metric: "Gross Sales Revenue", "Amount (MYR)": summary.totalRevenue },
-      { Section: "1. SALES REVENUE", Metric: "(-) Customer Discounts Given", "Amount (MYR)": -summary.totalDiscounts },
-      { Section: "1. SALES REVENUE", Metric: "(+) SST Tax Collected", "Amount (MYR)": summary.totalTax },
-      { Section: "2. COST OF SALES", Metric: "(-) Cost of Goods Sold (COGS / Paper / Stock)", "Amount (MYR)": -summary.totalCogs },
-      { Section: "3. GROSS PROFIT", Metric: "(=) Gross Profit", "Amount (MYR)": summary.grossProfit },
-      { Section: "3. GROSS PROFIT", Metric: "Gross Profit Margin (%)", "Amount (MYR)": `${summary.grossMargin || 0}%` },
-      ...expensesByCategory.map((e) => ({
-        Section: "4. OPERATING OVERHEAD",
-        Metric: `(-) ${e.category}`,
-        "Amount (MYR)": -e.amount,
+    // Sheet 1: Sales & Payment Summary
+    const summaryRows = [
+      { Metric: "Reporting Period", Value: periodLabel },
+      { Metric: "Total Sales Revenue (MYR)", Value: summary.totalRevenue },
+      { Metric: "Total Completed Orders / Receipts", Value: summary.totalTransactions },
+      { Metric: "Total Items & Prints Sold", Value: summary.totalItemsSold },
+      { Metric: "Average Order Value (MYR)", Value: summary.averageOrderValue },
+      { Metric: "Total Discounts Given (MYR)", Value: summary.totalDiscounts },
+      { Metric: "Total SST Tax Collected (MYR)", Value: summary.totalTax },
+      { Metric: "---", Value: "---" },
+      { Metric: "PAYMENT METHOD RECONCILIATION", Value: "---" },
+      ...paymentReconciliation.map((p) => ({
+        Metric: `${translatePaymentMethod(p.method, language)} Collections (MYR)`,
+        Value: `${p.amount} (${p.count} transactions, ${p.percentage}%)`,
       })),
-      { Section: "4. OPERATING OVERHEAD", Metric: "Total Operating Expenses", "Amount (MYR)": -summary.totalExpenses },
-      { Section: "5. NET OPERATING PROFIT", Metric: "(=) Net Profit", "Amount (MYR)": summary.netProfit },
-      { Section: "5. NET OPERATING PROFIT", Metric: "Net Profit Margin (%)", "Amount (MYR)": `${summary.profitMargin}%` },
-      { Section: "6. OPERATIONS", Metric: "Total Completed Transactions", "Amount (MYR)": summary.totalTransactions },
     ];
-    const wsFinancial = XLSX.utils.json_to_sheet(financialRows);
-    XLSX.utils.book_append_sheet(wb, wsFinancial, "P&L Statement");
+    const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Sales Summary");
 
-    // 2. Sheet: Category Sales
-    const categoryRows = categoryData.map((c) => ({
-      "Category Name": c.name,
-      "Revenue (MYR)": c.value,
-      "Share of Sales (%)": `${c.percentage}%`,
-      "Items / Units Sold": c.count,
+    // Sheet 2: Daily Sales Breakdown
+    const dailyRows = dailyBreakdown.map((d) => ({
+      Date: d.date,
+      Day: d.dayName,
+      "Orders Count": d.count,
+      "Cash Sales (MYR)": d.cash,
+      "Digital Sales (MYR)": d.digital,
+      "Day Total (MYR)": d.total,
     }));
-    const wsCategories = XLSX.utils.json_to_sheet(categoryRows);
-    XLSX.utils.book_append_sheet(wb, wsCategories, "Sales by Category");
+    const wsDaily = XLSX.utils.json_to_sheet(dailyRows);
+    XLSX.utils.book_append_sheet(wb, wsDaily, "Daily Breakdown");
 
-    // 3. Sheet: Product Sales Breakdown
-    const productRows = productData.map((p) => ({
-      "Product / Service Name": p.productName,
-      "Category": p.categoryName,
-      "Type": p.isService ? "Printing Service" : "Stock Merchandise",
+    // Sheet 3: Top Selling Items
+    const topRows = topProducts.map((p, idx) => ({
+      Rank: idx + 1,
+      "Item / Service Name": p.productName,
+      Category: p.categoryName,
+      Type: p.isService ? "Printing Service" : "Stock Merchandise",
       "Units Sold": p.unitsSold,
-      "Unit Price (MYR)": p.unitPrice,
       "Total Revenue (MYR)": p.totalRevenue,
-      "Total COGS (MYR)": p.totalCogs,
-      "Gross Profit (MYR)": p.profit,
-      "Profit Margin (%)": `${p.margin}%`,
+      "Share of Sales (%)": `${p.percentage}%`,
     }));
-    const wsProducts = XLSX.utils.json_to_sheet(productRows);
-    XLSX.utils.book_append_sheet(wb, wsProducts, "Product Sales Breakdown");
+    const wsTop = XLSX.utils.json_to_sheet(topRows);
+    XLSX.utils.book_append_sheet(wb, wsTop, "Top Selling Items");
 
-    XLSX.writeFile(
-      wb,
-      `Nolan_Printing_Financial_Report_${new Date().toISOString().split("T")[0]}.xlsx`
-    );
+    // Sheet 4: Itemized Detailed Transactions Log
+    const itemizedRows: any[] = [];
+    detailedTransactions.forEach((tx) => {
+      tx.items.forEach((it) => {
+        itemizedRows.push({
+          "Receipt #": tx.receiptNo,
+          "Date & Time": formatDate(tx.createdAt),
+          Cashier: tx.cashier,
+          "Payment Method": translatePaymentMethod(tx.paymentMethod, language),
+          "Item Name": it.productName,
+          Category: it.categoryName,
+          "Print Specs / Details": it.details || "-",
+          Quantity: it.quantity,
+          "Unit Price (MYR)": it.priceAtSale,
+          "Line Total (MYR)": it.lineTotal,
+          "Receipt Total (MYR)": tx.total,
+        });
+      });
+    });
+    const wsItemized = XLSX.utils.json_to_sheet(itemizedRows);
+    XLSX.utils.book_append_sheet(wb, wsItemized, "Itemized Transactions");
+
+    const dateFileSlug = periodLabel.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+    XLSX.writeFile(wb, `Nolan_Printing_Sales_Report_${dateFileSlug}.xlsx`);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
     <div className="space-y-6">
       {/* Top Header & Section Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors print:hidden">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center font-bold">
             <BarChart3 className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800 dark:text-white">{t("analytics")}</h1>
+            <h1 className="text-lg font-bold text-slate-800 dark:text-white">
+              {t("sales_report_title")}
+            </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t("reports_subtitle")}
+              {t("sales_report_subtitle")}
             </p>
           </div>
         </div>
@@ -222,20 +305,20 @@ export default function ReportsPage() {
           {/* Tab Switcher */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
             <button
-              onClick={() => setActiveReportTab("financial")}
+              onClick={() => setActiveTab("sales")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
-                activeReportTab === "financial"
+                activeTab === "sales"
                   ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <DollarSign className="w-3.5 h-3.5" />
-              <span>{t("financials_and_sales")}</span>
+              <span>{t("sales_analysis_tab")}</span>
             </button>
             <button
-              onClick={() => setActiveReportTab("stock_intake")}
+              onClick={() => setActiveTab("stock_intake")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
-                activeReportTab === "stock_intake"
+                activeTab === "stock_intake"
                   ? "bg-emerald-600 text-white shadow-sm font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
@@ -245,402 +328,764 @@ export default function ReportsPage() {
             </button>
           </div>
 
-          {activeReportTab === "financial" && (
-            <button
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
-            >
-              <Download className="w-4 h-4" />
-              <span>{t("export_excel_btn")}</span>
-            </button>
+          {activeTab === "sales" && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition"
+                title={t("print_sales_report")}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>{t("print_sales_report")}</span>
+              </button>
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{t("export_excel_detailed")}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
 
-      {activeReportTab === "stock_intake" ? (
+      {activeTab === "stock_intake" ? (
         <StockIntakeReportView />
-      ) : loading ? (
-        <div className="space-y-6 animate-fade-in">
-          {/* Skeleton P&L and Pie Chart */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-pulse space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-800" />
-                  <div className="space-y-1.5">
-                    <div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded" />
-                    <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800/60 rounded" />
-                  </div>
-                </div>
-                <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-full" />
-              </div>
-              <div className="space-y-3 py-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800/50">
-                    <div className="h-3.5 w-36 bg-slate-200 dark:bg-slate-800 rounded" />
-                    <div className="h-3.5 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-pulse space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
-                <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
-              </div>
-              <div className="h-64 flex items-center justify-center">
-                <div className="w-36 h-36 rounded-full border-8 border-slate-200 dark:border-slate-800 animate-pulse" />
-              </div>
-            </div>
-          </div>
-        </div>
       ) : (
         <>
-          {/* Row 1: Executive P&L Financial Statement Card + Category Sales Pie Chart */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Executive P&L Financial Statement Card */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors">
-          <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-sm text-slate-800 dark:text-white">{t("pl_statement")}</h2>
-                  <p className="text-[11px] text-slate-400">{t("executive_ledger")}</p>
-                </div>
+          {/* Filter Bar (Date Range, Monthly & Yearly) */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors print:hidden">
+            {/* Mode Switcher Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-bold">
+                <button
+                  onClick={() => setFilterMode("presets")}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    filterMode === "presets"
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  {t("filter_mode")}
+                </button>
+                <button
+                  onClick={() => setFilterMode("monthly")}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    filterMode === "monthly"
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  {t("filter_mode_monthly")}
+                </button>
+                <button
+                  onClick={() => setFilterMode("yearly")}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    filterMode === "yearly"
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  {t("filter_mode_yearly")}
+                </button>
+                <button
+                  onClick={() => setFilterMode("custom")}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    filterMode === "custom"
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  {t("filter_mode_custom")}
+                </button>
               </div>
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                {summary?.totalTransactions || 0} {t("sales_recorded")}
-              </span>
-            </div>
 
-            {/* Income & Expenditure Statement Items */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs mt-3">
-              {/* Gross Sales */}
-              <div className="py-2.5 flex justify-between items-center">
-                <span className="font-semibold text-slate-600 dark:text-slate-300">1. {t("gross_sales_revenue")}</span>
-                <span className="font-bold text-slate-900 dark:text-white">{formatMYR(summary?.totalRevenue)}</span>
-              </div>
-
-              {/* Discounts */}
-              {(summary?.totalDiscounts || 0) > 0 && (
-                <div className="py-2 flex justify-between items-center text-amber-600 dark:text-amber-400 pl-3 text-[11px]">
-                  <span>(-) {t("discounts_given")}</span>
-                  <span>-{formatMYR(summary?.totalDiscounts)}</span>
-                </div>
-              )}
-
-              {/* COGS */}
-              <div className="py-2.5 flex justify-between items-center text-rose-600 dark:text-rose-400">
-                <span className="font-semibold">2. (-) {t("cogs")}</span>
-                <span className="font-bold">-{formatMYR(summary?.totalCogs)}</span>
-              </div>
-
-              {/* Gross Profit KPI Banner */}
-              <div className="py-2.5 px-3 my-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex justify-between items-center font-bold text-slate-800 dark:text-slate-100">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-emerald-600 dark:text-emerald-400">(=) {t("gross_profit")}</span>
-                  <span className="text-[10px] font-normal text-slate-400">
-                    ({summary?.grossMargin || 0}% {t("profit_margin")})
-                  </span>
-                </div>
-                <span className="font-black text-slate-900 dark:text-white">
-                  {formatMYR(summary?.grossProfit)}
+              {/* Active Period Badge */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-400 font-medium">{t("showing_period")}:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                  {periodLabel || "---"}
                 </span>
               </div>
+            </div>
 
-              {/* Operating Expenses */}
-              <div className="py-2.5 flex justify-between items-center text-rose-600 dark:text-rose-400">
-                <span className="font-semibold">3. (-) {t("total_operating_expenses")}</span>
-                <span className="font-bold">-{formatMYR(summary?.totalExpenses)}</span>
-              </div>
-
-              {/* Expense Breakdown Pills */}
-              {expensesByCategory.length > 0 && (
-                <div className="py-2 pl-3 flex flex-wrap gap-1.5">
-                  {expensesByCategory.map((e) => (
-                    <span
-                      key={e.category}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-medium"
+            {/* Filter Controls Row */}
+            <div>
+              {filterMode === "presets" && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[
+                    { id: "today", label: t("filter_preset_today") },
+                    { id: "yesterday", label: t("filter_preset_yesterday") },
+                    { id: "this_month", label: t("filter_preset_this_month") },
+                    { id: "this_year", label: t("filter_preset_this_year") },
+                    { id: "all", label: t("filter_preset_all") },
+                  ].map((btn) => (
+                    <button
+                      key={btn.id}
+                      onClick={() => setPreset(btn.id)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                        preset === btn.id
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                          : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                      }`}
                     >
-                      {translateExpenseCategory(e.category, language)}: {formatMYR(e.amount)}
-                    </span>
+                      {btn.label}
+                    </button>
                   ))}
                 </div>
               )}
 
-              {/* Net Profit Hero Highlight */}
-              <div className="pt-3.5 pb-1">
-                <div className="p-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white rounded-xl flex justify-between items-center shadow-md shadow-blue-600/20">
+              {filterMode === "monthly" && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {t("select_month")}:
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <option key={m} value={m}>
+                          {translateMonth(m, language)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {t("select_year")}:
+                    </label>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      {availableYears.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {filterMode === "yearly" && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {t("select_year")}:
+                    </label>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      {availableYears.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {filterMode === "custom" && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {t("from_date")}:
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                    </input>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {t("to_date")}:
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                    </input>
+                  </div>
+                  <button
+                    onClick={handleApplyCustomDate}
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                  >
+                    {t("apply_filter")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-6 animate-pulse">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-28 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5"
+                  />
+                ))}
+              </div>
+              <div className="h-64 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5" />
+            </div>
+          ) : (
+            <>
+              {/* Section 1: 4 Key Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Total Sales Revenue */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
                   <div>
-                    <span className="text-[11px] uppercase tracking-wider text-blue-100 font-bold block">
-                      (=) {t("net_operating_profit")}
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {t("total_sales_revenue")}
                     </span>
-                    <span className="text-xs text-blue-200">
-                      {t("net_profit")} {t("profit_margin")}: <strong>{summary?.profitMargin || 0}%</strong>
+                    <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                      {formatMYR(summary?.totalRevenue || 0)}
+                    </div>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block">
+                      {summary?.totalTransactions || 0} {t("sales_count")}
                     </span>
                   </div>
-                  <div className="text-xl font-black">{formatMYR(summary?.netProfit)}</div>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <DollarSign className="w-6 h-6" />
+                  </div>
+                </div>
+
+                {/* Total Orders / Receipts */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {t("total_orders_receipts")}
+                    </span>
+                    <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                      {summary?.totalTransactions || 0}
+                    </div>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block">
+                      {t("completed")}
+                    </span>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                    <Receipt className="w-6 h-6" />
+                  </div>
+                </div>
+
+                {/* Items & Prints Sold */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {t("total_items_prints_sold")}
+                    </span>
+                    <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                      {summary?.totalItemsSold || 0}
+                    </div>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block">
+                      {t("units_sold")}
+                    </span>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <Package className="w-6 h-6" />
+                  </div>
+                </div>
+
+                {/* Average Order Value */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {t("average_order_value")}
+                    </span>
+                    <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                      {formatMYR(summary?.averageOrderValue || 0)}
+                    </div>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block">
+                      per {t("transactions")}
+                    </span>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Payment Method Reconciliation */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <h2 className="font-bold text-sm text-slate-800 dark:text-white">
+                        {t("payment_method_reconciliation")}
+                      </h2>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {t("payment_reconciliation_desc")}
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-900/50">
+                    {t("reconcile_warning")}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+                  {paymentReconciliation.map((pay) => {
+                    const isCash = pay.method === "cash";
+                    const isQR = pay.method === "qr";
+                    const isTransfer = pay.method === "transfer";
+
+                    return (
+                      <div
+                        key={pay.method}
+                        className={`p-4 rounded-xl border transition ${
+                          isCash
+                            ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60"
+                            : isQR
+                            ? "bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800/60"
+                            : isTransfer
+                            ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/60"
+                            : "bg-purple-50/50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800/60"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {isCash ? (
+                              <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            ) : isQR ? (
+                              <QrCode className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                            ) : isTransfer ? (
+                              <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            )}
+                            <span className="font-bold text-xs text-slate-800 dark:text-slate-100">
+                              {translatePaymentMethod(pay.method, language)}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-700">
+                            {pay.percentage}%
+                          </span>
+                        </div>
+
+                        <div className="text-xl font-black text-slate-900 dark:text-white">
+                          {formatMYR(pay.amount)}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <span>{pay.count} {t("sales_count")}</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            {isCash ? t("cash_in_drawer") : t("electronic_payments")}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 3: Daily / Periodic Sales Breakdown */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <h2 className="font-bold text-sm text-slate-800 dark:text-white">
+                        {filterMode === "yearly"
+                          ? t("monthly_sales_breakdown")
+                          : t("daily_sales_breakdown")}
+                      </h2>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {periodLabel}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold print:hidden">
+                    <button
+                      onClick={() => setDailyViewMode("chart")}
+                      className={`px-3 py-1 rounded-lg transition ${
+                        dailyViewMode === "chart"
+                          ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      {t("daily_trend_chart")}
+                    </button>
+                    <button
+                      onClick={() => setDailyViewMode("table")}
+                      className={`px-3 py-1 rounded-lg transition ${
+                        dailyViewMode === "table"
+                          ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      {t("daily_summary_table")}
+                    </button>
+                  </div>
+                </div>
+
+                {dailyBreakdown.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <span>{t("no_transactions_match_period")}</span>
+                  </div>
+                ) : dailyViewMode === "chart" ? (
+                  <div className="h-64 pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dailyBreakdown}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                        <XAxis dataKey="dayName" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip
+                          formatter={(val: any) => formatMYR(val)}
+                          labelFormatter={(label, items) => {
+                            const dateObj = items && items[0]?.payload;
+                            return dateObj ? `${dateObj.date} (${dateObj.dayName})` : String(label);
+                          }}
+                        />
+                        <Bar dataKey="total" fill="#2563eb" radius={[6, 6, 0, 0]} name={t("day_total_col")} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                        <tr>
+                          <th className="p-3">{t("date_col")}</th>
+                          <th className="p-3">{t("day_col")}</th>
+                          <th className="p-3 text-right">{t("orders_col")}</th>
+                          <th className="p-3 text-right">{t("cash_col")}</th>
+                          <th className="p-3 text-right">{t("digital_col")}</th>
+                          <th className="p-3 text-right font-bold">{t("day_total_col")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                        {dailyBreakdown.map((row) => (
+                          <tr key={row.date} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="p-3 font-medium text-slate-900 dark:text-white">
+                              {row.date}
+                            </td>
+                            <td className="p-3 text-slate-500 dark:text-slate-400">{row.dayName}</td>
+                            <td className="p-3 text-right font-bold">{row.count}</td>
+                            <td className="p-3 text-right text-emerald-600 dark:text-emerald-400 font-medium">
+                              {formatMYR(row.cash)}
+                            </td>
+                            <td className="p-3 text-right text-blue-600 dark:text-blue-400 font-medium">
+                              {formatMYR(row.digital)}
+                            </td>
+                            <td className="p-3 text-right font-black text-slate-900 dark:text-white">
+                              {formatMYR(row.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 4: Top-Selling Products & Services */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+                <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <h2 className="font-bold text-sm text-slate-800 dark:text-white">
+                      {t("top_selling_items")}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {periodLabel}
+                  </p>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="p-3">{t("product_or_service")}</th>
+                        <th className="p-3">{t("category")}</th>
+                        <th className="p-3 text-center">{t("type")}</th>
+                        <th className="p-3 text-right">{t("units_sold")}</th>
+                        <th className="p-3 text-right">{t("total_revenue")}</th>
+                        <th className="p-3 text-right">Share (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                      {topProducts.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-slate-400">
+                            {t("no_transactions_match_period")}
+                          </td>
+                        </tr>
+                      ) : (
+                        topProducts.slice(0, 10).map((prod) => (
+                          <tr key={prod.productId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                              {prod.isService ? (
+                                <Printer className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              ) : (
+                                <Package className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              )}
+                              <span>{prod.productName}</span>
+                            </td>
+                            <td className="p-3 text-slate-500 dark:text-slate-400">
+                              {translateCategory(prod.categoryName, language)}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  prod.isService
+                                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300"
+                                    : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                                }`}
+                              >
+                                {prod.isService ? t("service_label") : t("product_label")}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-bold">{prod.unitsSold}</td>
+                            <td className="p-3 text-right font-black text-blue-600 dark:text-blue-400">
+                              {formatMYR(prod.totalRevenue)}
+                            </td>
+                            <td className="p-3 text-right font-medium text-slate-500">
+                              {prod.percentage}%
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Section 5: Detailed Sales Transactions Table */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <h2 className="font-bold text-sm text-slate-800 dark:text-white">
+                        {t("detailed_sales_log")}
+                      </h2>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {t("detailed_sales_desc")}
+                    </p>
+                  </div>
+
+                  {/* Search and Payment Filter */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative w-full sm:w-60">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder={t("search_transactions_ph")}
+                        value={transactionSearch}
+                        onChange={(e) => setTransactionSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      />
+                    </div>
+
+                    <select
+                      value={paymentFilter}
+                      onChange={(e) => setPaymentFilter(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      <option value="all">{t("filter_payment_all")}</option>
+                      <option value="cash">{translatePaymentMethod("cash", language)}</option>
+                      <option value="qr">{translatePaymentMethod("qr", language)}</option>
+                      <option value="transfer">{translatePaymentMethod("transfer", language)}</option>
+                      <option value="card">{translatePaymentMethod("card", language)}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="p-3">{t("receipt_no")}</th>
+                        <th className="p-3">{t("timestamp")}</th>
+                        <th className="p-3">{t("cashier_col")}</th>
+                        <th className="p-3">{t("payment_col")}</th>
+                        <th className="p-3">{t("items_col")}</th>
+                        <th className="p-3 text-right">{t("total_col")}</th>
+                        <th className="p-3 text-center print:hidden">{t("actions")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                      {filteredTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center text-slate-400">
+                            {t("no_transactions_match_period")}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTransactions.map((tx) => {
+                          const isCash = tx.paymentMethod.toLowerCase() === "cash";
+                          const isQR = tx.paymentMethod.toLowerCase().includes("qr");
+                          const isTransfer = tx.paymentMethod.toLowerCase().includes("transfer");
+
+                          return (
+                            <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                              <td className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                                {tx.receiptNo}
+                              </td>
+                              <td className="p-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                {formatDate(tx.createdAt)}
+                              </td>
+                              <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
+                                {tx.cashier}
+                              </td>
+                              <td className="p-3">
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    isCash
+                                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                      : isQR
+                                      ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800"
+                                      : isTransfer
+                                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                                      : "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                  }`}
+                                >
+                                  {translatePaymentMethod(tx.paymentMethod, language)}
+                                </span>
+                              </td>
+                              <td className="p-3 max-w-xs truncate text-slate-600 dark:text-slate-300" title={tx.itemsSummary}>
+                                {tx.itemsSummary}
+                              </td>
+                              <td className="p-3 text-right font-black text-slate-900 dark:text-white">
+                                {formatMYR(tx.total)}
+                              </td>
+                              <td className="p-3 text-center print:hidden">
+                                <button
+                                  onClick={() => setSelectedTransaction(tx)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/40 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg text-xs font-semibold transition"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>{t("view_details_btn")}</span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Modal: Itemized Transaction Details */}
+          {selectedTransaction && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in print:hidden">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-800 dark:text-white">
+                        {t("transaction_details_title")}: {selectedTransaction.receiptNo}
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        {formatDate(selectedTransaction.createdAt)} • {t("cashier_col")}: {selectedTransaction.cashier}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedTransaction(null)}
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Line Items Table */}
+                <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 text-slate-500 uppercase font-semibold">
+                      <tr>
+                        <th className="p-2.5">{t("item_description_col")}</th>
+                        <th className="p-2.5 text-center">{t("qty_col")}</th>
+                        <th className="p-2.5 text-right">{t("unit_price_col")}</th>
+                        <th className="p-2.5 text-right">{t("subtotal_col")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {selectedTransaction.items.map((it) => (
+                        <tr key={it.id}>
+                          <td className="p-2.5">
+                            <span className="font-bold text-slate-800 dark:text-white block">
+                              {it.productName}
+                            </span>
+                            {it.details && (
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium block mt-0.5">
+                                {it.details}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-2.5 text-center font-bold">{it.quantity}</td>
+                          <td className="p-2.5 text-right text-slate-600 dark:text-slate-400">
+                            {formatMYR(it.priceAtSale)}
+                          </td>
+                          <td className="p-2.5 text-right font-bold text-slate-900 dark:text-white">
+                            {formatMYR(it.lineTotal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>{t("subtotal_col")}</span>
+                    <span>{formatMYR(selectedTransaction.subtotal)}</span>
+                  </div>
+                  {selectedTransaction.discountAmount > 0 && (
+                    <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                      <span>{t("discount")}</span>
+                      <span>-{formatMYR(selectedTransaction.discountAmount)}</span>
+                    </div>
+                  )}
+                  {selectedTransaction.taxAmount > 0 && (
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                      <span>{t("tax")} (SST 6%)</span>
+                      <span>+{formatMYR(selectedTransaction.taxAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <span>{t("total")} ({translatePaymentMethod(selectedTransaction.paymentMethod, language)})</span>
+                    <span className="text-blue-600 dark:text-blue-400">{formatMYR(selectedTransaction.total)}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => setSelectedTransaction(null)}
+                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition"
+                  >
+                    {t("close_btn")}
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Category Sales Pie / Donut Chart */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                <PieIcon className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="font-bold text-sm text-slate-800 dark:text-white">{t("sales_by_category")}</h2>
-                <p className="text-[11px] text-slate-400">{t("revenue_market_share")}</p>
-              </div>
-            </div>
-            <span className="text-[11px] font-bold text-slate-400">
-              {categoryData.length} {t("categories_count")}
-            </span>
-          </div>
-
-          <div className="flex-1 min-h-[260px] flex items-center justify-center pt-2">
-            {categoryData.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                <PieIcon className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <span>{t("no_categories_found")}</span>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={95}
-                    paddingAngle={3}
-                    onClick={(entry) => setSelectedCategory(entry.name)}
-                    cursor="pointer"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={PIE_COLORS[index % PIE_COLORS.length]}
-                        stroke="transparent"
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val: any) => formatMYR(val)}
-                    contentStyle={{
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                      backgroundColor: "#0f172a",
-                      color: "#fff",
-                      border: "none",
-                      padding: "8px 12px",
-                    }}
-                  />
-                  <Legend
-                    formatter={(value) => (
-                      <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                        {translateCategory(value, language)}
-                      </span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Quick Category Share Chips */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2">
-            {categoryData.map((c, i) => (
-              <button
-                key={c.name}
-                onClick={() => setSelectedCategory(c.name)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 transition ${
-                  selectedCategory.toLowerCase() === c.name.toLowerCase()
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
-                />
-                <span>{translateCategory(c.name, language)}:</span>
-                <strong>{c.percentage}%</strong>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Category Filter & Product-Level Sales Drilldown Section */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
-        {/* Drilldown Section Header & Category Filters */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h2 className="font-bold text-sm text-slate-800 dark:text-white">
-                {t("product_sales_drilldown")}
-              </h2>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {t("select_category_inspect")}
-            </p>
-          </div>
-
-          {/* Search within filtered list */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder={t("search_product_service")}
-              value={productSearch}
-              onChange={(e) => setProductSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
-        </div>
-
-        {/* Category Pills Filter Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${
-              selectedCategory === "all"
-                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
-                : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100"
-            }`}
-          >
-            {t("all_categories")} ({productData.length} {t("active_items")})
-          </button>
-          {categoryData.map((c) => (
-            <button
-              key={c.name}
-              onClick={() => setSelectedCategory(c.name)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${
-                selectedCategory.toLowerCase() === c.name.toLowerCase()
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100"
-              }`}
-            >
-              {translateCategory(c.name, language)} ({formatMYR(c.value)})
-            </button>
-          ))}
-        </div>
-
-        {/* Visual Bar Chart of Top Products in Current Category */}
-        {topProductsChart.length > 0 && (
-          <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-              <span>{t("top_generating_products")} ({selectedCategory === "all" ? t("all_categories") : translateCategory(selectedCategory, language)})</span>
-            </h3>
-            <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProductsChart}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip formatter={(v: any) => formatMYR(v)} />
-                  <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* Product Sales Breakdown Table */}
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
-              <tr>
-                <th className="p-3.5">{t("product_or_service")}</th>
-                <th className="p-3.5">{t("category")}</th>
-                <th className="p-3.5 text-center">{t("type")}</th>
-                <th className="p-3.5 text-right">{t("units_sold")}</th>
-                <th className="p-3.5 text-right">{t("total_revenue")}</th>
-                <th className="p-3.5 text-right">{t("cogs")}</th>
-                <th className="p-3.5 text-right">{t("gross_profit_tbl")}</th>
-                <th className="p-3.5 text-right">{t("margin_tbl")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
-                    {t("no_product_sales_found")} <strong>{selectedCategory === "all" ? t("all_categories") : translateCategory(selectedCategory, language)}</strong>
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map((prod) => (
-                  <tr
-                    key={prod.productId}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
-                  >
-                    <td className="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      {prod.isService ? (
-                        <Printer className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                      ) : (
-                        <Package className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      )}
-                      <span>{prod.productName}</span>
-                    </td>
-                    <td className="p-3.5 font-medium text-slate-500 dark:text-slate-400">
-                      {translateCategory(prod.categoryName, language)}
-                    </td>
-                    <td className="p-3.5 text-center">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          prod.isService
-                            ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300"
-                            : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
-                        }`}
-                      >
-                        {prod.isService ? t("service_label") : t("product_label")}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-right font-bold text-slate-900 dark:text-white">
-                      {prod.unitsSold}
-                    </td>
-                    <td className="p-3.5 text-right font-black text-blue-600 dark:text-blue-400">
-                      {formatMYR(prod.totalRevenue)}
-                    </td>
-                    <td className="p-3.5 text-right text-rose-600 dark:text-rose-400 font-semibold">
-                      {formatMYR(prod.totalCogs)}
-                    </td>
-                    <td className="p-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatMYR(prod.profit)}
-                    </td>
-                    <td className="p-3.5 text-right">
-                      <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          prod.margin >= 40
-                            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300"
-                            : prod.margin >= 20
-                            ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
-                            : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
-                        }`}
-                      >
-                        {prod.margin}%
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          )}
         </>
       )}
     </div>

@@ -31,21 +31,18 @@ interface UserProfile {
   _count?: { sales: number };
 }
 
-const roleStyles: Record<string, { badge: string; label: string; icon: string }> = {
+const roleStyles: Record<string, { badge: string; label: string }> = {
   owner: {
     badge: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
     label: "Store Owner (Admin)",
-    icon: "👑",
   },
   cashier: {
     badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
     label: "Cashier",
-    icon: "💳",
   },
   stock_handler: {
     badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
     label: "Stock Manager",
-    icon: "📦",
   },
 };
 
@@ -205,7 +202,7 @@ export default function ProfilePage() {
                       roleStyles[profile.role]?.badge || "bg-slate-100"
                     }`}
                   >
-                    {roleStyles[profile.role]?.icon || "👤"} {translateRole(profile.role, language)}
+                    {translateRole(profile.role, language)}
                   </span>
                 </div>
               </div>

@@ -447,8 +447,9 @@ export default function CategoriesPage() {
                 {t("are_you_sure_delete_category")}{" "}
                 <strong className="text-slate-800 dark:text-white">'{translateCategory(deletingCat.name, language)}'</strong>?
                 {(deletingCat._count?.products || 0) > 0 && (
-                  <span className="block mt-1 text-amber-600 dark:text-amber-400 font-medium">
-                    ⚠️ {deletingCat._count?.products} {t("linked_products_unlinked_warning")}
+                  <span className="flex items-center gap-1.5 mt-1 text-amber-600 dark:text-amber-400 font-medium">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{deletingCat._count?.products} {t("linked_products_unlinked_warning")}</span>
                   </span>
                 )}
               </p>
