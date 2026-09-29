@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   description: "Point of Sale, Inventory, and Business Management for Nolan Printing Services",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/icon.png?v=1", type: "image/png" },
+      { url: "/favicon.ico?v=1", sizes: "any" },
     ],
-    apple: "/apple-icon.png",
+    apple: "/apple-icon.png?v=1",
   },
 };
 
