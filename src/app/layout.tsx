@@ -10,6 +10,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Nolan Printing Services | Management System",
   description: "Point of Sale, Inventory, and Business Management for Nolan Printing Services",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
